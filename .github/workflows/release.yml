@@ -1,0 +1,55 @@
+# v0.1.0 같은 태그를 push 하면 빌드해서 GitHub Release 에 zip + SHA-256 을 올린다.
+# (선택) 저장소 변수 PUBLISH_NPM=true 와 시크릿 NPM_TOKEN 을 만들어 두면 npm 에도 게시한다.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: 태그와 package.json 버전이 같은지 확인
+        shell: bash
+        run: |
+          version="v$(node -p "require('./package.json').version")"
+          if [ "$version" != "${GITHUB_REF_NAME}" ]; then
+            echo "태그 ${GITHUB_REF_NAME} 와 package.json 버전 ${version} 이 다릅니다"
+            exit 1
+          fi
+      - run: npm run typecheck
+      - run: npm run package
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            release/hagis-*.zip
+            release/hagis-*.zip.sha256
+
+  npm:
+    needs: release
+    if: ${{ vars.PUBLISH_NPM == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
