@@ -69,9 +69,11 @@ export class HagisWebService {
     /**
      * 새 창 열기 처리
      *
-     * 웹 패널의 target=_blank 링크·window.open 은 그대로 두면 Electron 새 창(팝업)으로 뜬다.
-     *  - 크기를 지정한 window.open (로그인·인쇄·첨부 보기 같은 진짜 팝업)과 빈 창 → 그대로 팝업
-     *  - 그 밖의 "새 탭으로 열기" 링크 → 막고 HAGIS_OPEN_IN_PLACE 이벤트로 알린다 (패널 안에서 연다)
+     * 웹 패널의 target=_blank 링크·window.open 을 종류별로 나눈다.
+     *  - 진짜 팝업 → 그대로 팝업 창으로 띄우고 맨 앞으로 가져온다:
+     *      크기·위치를 지정한 window.open (로그인·인쇄·첨부 보기), 빈 창(about:blank)과 blob:/data:/javascript: 창
+     *      (페이지가 직접 내용을 채우는 창), 양식 POST (패널로는 POST 를 옮길 수 없다)
+     *  - "새 탭으로 열기" 링크 → 막고 HAGIS_OPEN_IN_PLACE 이벤트로 알린다 (설정에 따라 새 패널 또는 이 패널에서 연다)
      *
      * 허용/거부는 메인 프로세스에서 즉시 답해야 한다 — remote 콜백은 비동기라 답을 돌려줄 수 없으므로,
      * 메인 프로세스에 작은 처리 함수를 만들어 붙인다 (코드는 아래 고정 문자열, 사용자 입력은 들어가지 않는다).
@@ -82,15 +84,22 @@ export class HagisWebService {
             this.windowOpenHook = MainFunction('wc', 'eventName', `
                 wc.setWindowOpenHandler(function (details) {
                     var url = String(details.url || '');
-                    if (details.disposition === 'new-window' || url === '' || url === 'about:blank') {
+                    var popup = details.disposition === 'new-window'
+                        || url === '' || url === 'about:blank'
+                        || /^(blob|data|javascript):/i.test(url)
+                        || !!details.postBody;
+                    if (popup) {
                         return { action: 'allow', overrideBrowserWindowOptions: { autoHideMenuBar: true } };
                     }
-                    if (/^https?:/i.test(url)) {
-                        setImmediate(function () {
-                            try { if (!wc.isDestroyed()) wc.emit(eventName, url, details.disposition); } catch (e) { }
-                        });
-                    }
+                    // http(s) 외의 주소(mailto: 등)는 열지 않는다. 열 수 없는 것도 이벤트로 알려 화면에 안내한다.
+                    setImmediate(function () {
+                        try { if (!wc.isDestroyed()) wc.emit(eventName, url, details.disposition, /^https?:/i.test(url)); } catch (e) { }
+                    });
                     return { action: 'deny' };
+                });
+                // 팝업이 다른 창 뒤에 숨어 "아무 반응이 없는" 것처럼 보이지 않게 맨 앞으로
+                wc.on('did-create-window', function (win) {
+                    try { win.show(); win.moveTop(); win.focus(); } catch (e) { }
                 });
             `)
         }

@@ -413,17 +413,38 @@ body.hagis-dock-autohide.hagis-dock-side-right app-root .content.main > .content
 .hagis-dock.hagis-file-drop-target .hagis-dock-glass { border-color: #c6ff00; box-shadow: 0 0 0 2px rgba(198, 255, 0, .45), 0 8px 22px rgba(0, 0, 0, .45); }
 
 /* ===== hagis: 패널 경계선 (설정 → 패널 경계선) ===== */
-/* Tabby 가 패널 사이에 두는 크기 조절 영역(split-tab-spanner) 한가운데에 선을 그린다 */
-body.hagis-pane-borders split-tab-spanner::before {
+/* Tabby 가 패널 사이에 두는 크기 조절 영역(split-tab-spanner) 한가운데에 선을 그린다.
+   은은한 반투명 선 + 부드러운 번짐, 양 끝은 서서히 사라지고, 마우스를 올리거나 끌 때만 또렷해진다. */
+body.hagis-pane-borders split-tab-spanner::before,
+body.hagis-pane-borders split-tab-spanner::after {
     content: '';
     position: absolute;
     pointer-events: none;
-    background: var(--hagis-border-color, #c6ff00);
-    transition: opacity .12s;
+    transition: background .18s ease, opacity .18s ease;
 }
-body.hagis-pane-borders split-tab-spanner.h::before { top: 0; bottom: 0; left: calc(50% - var(--hagis-border-width, 2px) / 2); width: var(--hagis-border-width, 2px); }
-body.hagis-pane-borders split-tab-spanner.v::before { left: 0; right: 0; top: calc(50% - var(--hagis-border-width, 2px) / 2); height: var(--hagis-border-width, 2px); }
-body.hagis-pane-borders split-tab-spanner.active::before { opacity: .55; }
+/* 또렷한 선 */
+body.hagis-pane-borders split-tab-spanner::before {
+    background: color-mix(in srgb, var(--hagis-border-color, #c6ff00) var(--hagis-border-alpha, 55%), transparent);
+}
+/* 옅은 번짐 */
+body.hagis-pane-borders split-tab-spanner::after {
+    background: color-mix(in srgb, var(--hagis-border-color, #c6ff00) calc(var(--hagis-border-alpha, 55%) * .32), transparent);
+    filter: blur(2.5px);
+}
+body.hagis-pane-borders split-tab-spanner.h::before { top: 0; bottom: 0; left: calc(50% - var(--hagis-border-width, 1px) / 2); width: var(--hagis-border-width, 1px); }
+body.hagis-pane-borders split-tab-spanner.h::after { top: 0; bottom: 0; left: calc(50% - var(--hagis-border-width, 1px) * 2); width: calc(var(--hagis-border-width, 1px) * 4); }
+body.hagis-pane-borders split-tab-spanner.v::before { left: 0; right: 0; top: calc(50% - var(--hagis-border-width, 1px) / 2); height: var(--hagis-border-width, 1px); }
+body.hagis-pane-borders split-tab-spanner.v::after { left: 0; right: 0; top: calc(50% - var(--hagis-border-width, 1px) * 2); height: calc(var(--hagis-border-width, 1px) * 4); }
+/* 양 끝이 서서히 사라진다 */
+body.hagis-pane-borders split-tab-spanner.h::before,
+body.hagis-pane-borders split-tab-spanner.h::after { -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 6%, #000 94%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 6%, #000 94%, transparent 100%); }
+body.hagis-pane-borders split-tab-spanner.v::before,
+body.hagis-pane-borders split-tab-spanner.v::after { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%); }
+/* 마우스를 올리면(크기 조절 가능) 또렷하게 */
+body.hagis-pane-borders split-tab-spanner:hover::before,
+body.hagis-pane-borders split-tab-spanner.active::before { background: var(--hagis-border-color, #c6ff00); }
+body.hagis-pane-borders split-tab-spanner:hover::after,
+body.hagis-pane-borders split-tab-spanner.active::after { background: color-mix(in srgb, var(--hagis-border-color, #c6ff00) 45%, transparent); }
 
 /* ===== hagis: 툴바 버튼에 "Hagis" 글자 — 아이콘만으로는 무엇인지 알아보기 어렵다 ===== */
 .btn-tab-bar:has(> svg.hagis-toolbar-icon) {
@@ -507,13 +528,15 @@ export class HagisStylesService {
      * 패널 경계선 — 켜짐/색/굵기를 body 에 반영한다.
      * 웹 패널(네이티브 뷰)은 HTML 선 위에 그려져 선을 덮으므로, 켜져 있으면 웹 화면을 선 굵기의 절반만큼 안으로 줄인다.
      */
-    private applyBorders (borders?: { enabled?: boolean, color?: string, width?: number }): void {
+    private applyBorders (borders?: { enabled?: boolean, color?: string, width?: number, alpha?: number }): void {
         const enabled = !!borders?.enabled
         const color = typeof borders?.color === 'string' && /^#[0-9a-f]{6}$/i.test(borders.color.trim()) ? borders.color.trim() : '#c6ff00'
-        const width = Math.min(6, Math.max(1, Math.round(Number(borders?.width) || 2)))
+        const width = Math.min(6, Math.max(1, Math.round(Number(borders?.width) || 1)))
+        const alpha = Math.min(100, Math.max(20, Math.round(Number(borders?.alpha) || 55)))
         document.body.classList.toggle('hagis-pane-borders', enabled)
         document.body.style.setProperty('--hagis-border-color', color)
         document.body.style.setProperty('--hagis-border-width', `${width}px`)
+        document.body.style.setProperty('--hagis-border-alpha', `${alpha}%`)
         this.viewSync.setInset(enabled ? Math.ceil(width / 2) : 0)
     }
 

@@ -33,7 +33,9 @@ export class HagisConfigProvider extends ConfigProvider {
                 /** #rrggbb */
                 color: '#c6ff00',
                 /** px (1~6) */
-                width: 2,
+                width: 1,
+                /** 선 진하기 % (20~100) — 낮을수록 은은하다 */
+                alpha: 55,
             },
             /**
              * 터미널 이어가기 — Tabby를 껐다 켜거나 워크스페이스를 다시 열 때,
@@ -78,6 +80,11 @@ export class HagisConfigProvider extends ConfigProvider {
                 httpsFirst: true,
                 /** 사용자가 직접 신뢰한 자체 서명 인증서 (호스트 + SHA-256 지문) */
                 trustedCertificates: [] as HagisTrustedCertificate[],
+                /**
+                 * "새 탭으로 열기" 링크(target=_blank 등)를 어디에 열지
+                 * 'pane' = 옆에 새 패널(이름표가 하나 더 생긴다) | 'same' = 이 패널에서
+                 */
+                newTabLinks: 'pane' as 'pane' | 'same',
             },
         },
     }

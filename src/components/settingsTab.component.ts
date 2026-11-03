@@ -109,6 +109,14 @@ import { HagisWorkspaceService } from '../services/workspace.service'
             <option [ngValue]="6">6px</option>
         </select>
     </div>
+    <div class="form-line" *ngIf="config.store.hagis.paneBorders.enabled">
+        <div class="header">
+            <div class="title">경계선 진하기</div>
+            <div class="description">낮을수록 은은합니다. 마우스를 올리면 선이 또렷해집니다 (크기 조절 가능 표시).</div>
+        </div>
+        <input type="range" class="form-control" style="width: 220px" min="20" max="100" step="5" [(ngModel)]="config.store.hagis.paneBorders.alpha" (ngModelChange)="config.save()">
+        <span class="ms-2" style="min-width: 40px">{{ config.store.hagis.paneBorders.alpha }}%</span>
+    </div>
     <div class="form-line">
         <div class="header">
             <div class="title">독 (화면 옆 실행 막대)</div>
@@ -210,6 +218,16 @@ import { HagisWorkspaceService } from '../services/workspace.service'
     </div>
 
     <h4 class="mt-4">웹 GUI 패널</h4>
+    <div class="form-line">
+        <div class="header">
+            <div class="title">새 탭으로 열리는 링크</div>
+            <div class="description">웹 페이지가 링크를 새 탭(target=_blank)으로 열려 할 때: 옆에 새 패널(이름표가 하나 더 생김)로 열거나 이 패널에서 엽니다. 로그인·인쇄 같은 진짜 팝업은 항상 팝업 창으로 뜹니다.</div>
+        </div>
+        <select class="form-control" style="width: 220px" [(ngModel)]="config.store.hagis.web.newTabLinks" (ngModelChange)="config.save()">
+            <option value="pane">옆에 새 패널로 열기 (기본)</option>
+            <option value="same">이 패널에서 열기</option>
+        </select>
+    </div>
     <p class="text-muted small">
         웹 패널은 Tabby와 분리된 세션(persist:hagis-web)에서 Node.js 권한 없이 실행됩니다.
         인증서 검증은 끄지 않으며, 자체 서명 인증서는 아래 목록에 있는 호스트·지문만 허용합니다.

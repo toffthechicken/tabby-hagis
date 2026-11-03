@@ -1,5 +1,5 @@
 import { Component, ElementRef, Injector, NgZone, ViewChild, AfterViewInit, OnDestroy, OnInit } from '@angular/core'
-import { AppService, BaseTabComponent, ConfigService, GetRecoveryTokenOptions, PlatformService, RecoveryToken, SplitTabComponent } from 'tabby-core'
+import { AppService, BaseTabComponent, ConfigService, GetRecoveryTokenOptions, NotificationsService, PlatformService, RecoveryToken, SplitTabComponent, TabsService } from 'tabby-core'
 import { HagisCertificateProblem, HagisWebService, HAGIS_OPEN_IN_PLACE, HAGIS_WEB_PARTITION } from '../services/web.service'
 import { HagisPaneService } from '../services/pane.service'
 import { HagisStageService } from '../services/stage.service'
@@ -216,6 +216,8 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
         private zone: NgZone,
         private platform: PlatformService,
         private app: AppService,
+        private tabs: TabsService,
+        private notifications: NotificationsService,
         element: ElementRef,
     ) {
         super(injector)
@@ -354,7 +356,7 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
             }
         })
         // 새 탭으로 열리는 링크(target=_blank 등)는 팝업 창 대신 이 패널 안에서 연다 — 진짜 팝업만 창으로
-        on(HAGIS_OPEN_IN_PLACE, (url: string) => this.followLink(url))
+        on(HAGIS_OPEN_IN_PLACE, (url: string, _disposition: string, openable: boolean) => this.onNewTabRequest(url, openable))
         try {
             this.web.attachWindowOpenHandler(wc)
         } catch (e) {
@@ -798,12 +800,29 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
         this.navigate()
     }
 
-    /** 페이지가 새 탭·새 창으로 열려던 링크 → 이 패널에서 연다 */
-    private followLink (url: string): void {
-        if (this.destroyedFlag || !this.web.isAllowedUrl(url)) {
+    /**
+     * 페이지가 "새 탭으로" 열려던 링크
+     *  - 설정 'pane' (기본): 옆에 새 웹 패널을 만든다 — 이름표(페이지 제목)가 하나 더 생기고 원래 화면은 그대로
+     *  - 설정 'same': 이 패널에서 연다
+     */
+    private onNewTabRequest (url: string, openable: boolean): void {
+        if (this.destroyedFlag) {
             return
         }
-        this.load(url, null)
+        if (!openable || !this.web.isAllowedUrl(url)) {
+            this.notifications.info(`hagis: 이 페이지가 열려던 주소는 웹 패널에서 열 수 없습니다 — ${url.slice(0, 80)}`)
+            return
+        }
+        if ((this.hagisConfig.store?.hagis?.web?.newTabLinks ?? 'pane') === 'same') {
+            this.load(url, null)
+            return
+        }
+        const created: any = this.tabs.create({ type: HagisWebTabComponent, inputs: { url } })
+        if (this.parent instanceof SplitTabComponent) {
+            this.parent.addTab(created, this, 'r')
+        } else {
+            this.app.wrapAndAddTab(created)
+        }
     }
 
     /**
