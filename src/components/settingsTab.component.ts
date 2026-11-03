@@ -231,11 +231,12 @@ import { HagisWorkspaceService } from '../services/workspace.service'
     <div class="form-line">
         <div class="header">
             <div class="title">스크립트가 여는 창</div>
-            <div class="description">버튼을 눌렀을 때 페이지의 코드(window.open)가 여는 창입니다. 열어 준 창과 정보를 주고받는 사이트(원격 콘솔·결제·인증 창 등)는 진짜 창이어야 동작합니다. 패널로 바꾸면 그런 사이트는 비어 보일 수 있습니다.</div>
+            <div class="description">버튼을 눌렀을 때 페이지의 코드(window.open)가 여는 창입니다. 열어 준 창과 정보를 주고받는 사이트(원격 콘솔·결제·인증 창 등)는 진짜 창이거나 "패널로 열고 연결"이어야 동작합니다. "패널로 열고 연결"은 Hagis가 두 페이지 사이의 메시지(postMessage)를 대신 전달합니다(JSON으로 표현되는 값만 전달). 열어 준 창의 내용을 직접 만지는 사이트가 패널에서 안 되면 "진짜 창"으로 바꾸세요. 단순히 패널로만 바꾸면 그런 사이트는 비어 보일 수 있습니다. 이미 열려 있는 페이지는 새로 고쳐야 적용됩니다.</div>
         </div>
-        <select class="form-control" style="width: 220px" [(ngModel)]="config.store.hagis.web.scriptOpen" (ngModelChange)="config.save()">
-            <option value="window">진짜 창으로 열기 (기본)</option>
-            <option value="pane">옆에 새 패널로 열기</option>
+        <select class="form-control" style="width: 260px" [(ngModel)]="config.store.hagis.web.scriptOpen" (ngModelChange)="config.save()">
+            <option value="relay">옆에 새 패널로 열고 연결 (기본)</option>
+            <option value="window">진짜 창으로 열기</option>
+            <option value="pane">옆에 새 패널로만 열기</option>
         </select>
     </div>
     <p class="text-muted small">

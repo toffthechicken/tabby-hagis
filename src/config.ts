@@ -87,10 +87,12 @@ export class HagisConfigProvider extends ConfigProvider {
                 newTabLinks: 'pane' as 'pane' | 'same',
                 /**
                  * 페이지의 스크립트가 window.open(주소) 로 여는 창
-                 * 'window' = 진짜 창으로 (기본) — 열어 준 창과 메시지를 주고받는 사이트(원격 콘솔·결제창 등)가 동작한다
+                 * 'relay'  = 새 패널로 열고, 열어 준 페이지와의 창 핸들·postMessage 를 Hagis 가 중계한다 (기본)
+                 *            — 열어 준 창과 메시지를 주고받는 사이트(원격 콘솔·결제창 등)도 패널 안에서 동작한다
+                 * 'window' = 진짜 창으로 — 열어 준 창의 document 를 직접 만지는 사이트까지 원본 그대로 동작한다
                  * 'pane'   = 링크처럼 새 패널로 (창 핸들이 없어 그런 사이트는 동작하지 않는다)
                  */
-                scriptOpen: 'window' as 'window' | 'pane',
+                scriptOpen: 'relay' as 'window' | 'relay' | 'pane',
             },
         },
     }

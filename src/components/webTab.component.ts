@@ -1,6 +1,7 @@
 import { Component, ElementRef, Injector, NgZone, ViewChild, AfterViewInit, OnDestroy, OnInit } from '@angular/core'
 import { AppService, BaseTabComponent, ConfigService, GetRecoveryTokenOptions, NotificationsService, PlatformService, RecoveryToken, SplitTabComponent, TabsService } from 'tabby-core'
-import { HagisCertificateProblem, HagisWebService, HAGIS_OPEN_IN_PLACE, HAGIS_SCRIPT_OPEN_SHIM, HAGIS_WEB_PARTITION } from '../services/web.service'
+import { HagisCertificateProblem, HagisWebService, HAGIS_OPEN_IN_PLACE, HAGIS_WEB_PARTITION } from '../services/web.service'
+import { HAGIS_OPENER_SHIM, HAGIS_RELAY_PREFIX, HagisScriptOpenMode, scriptOpenShim, targetOriginMatches } from '../services/openShim'
 import { HagisPaneService } from '../services/pane.service'
 import { HagisStageService } from '../services/stage.service'
 import { HagisViewSyncContext, HagisViewSyncService, rectsOverlap } from '../services/viewSync.service'
@@ -8,6 +9,8 @@ import { HagisStageRole } from '../models'
 
 /** 새 패널이 열어 준 페이지의 sessionStorage 를 심어 두는 시간 — 이 안에 열리는 문서에 적용된다 */
 const SEED_WINDOW_MS = 12000
+/** 중계 패널이 열어 준 페이지와 메시지를 주고받는 간격 */
+const RELAY_POLL_MS = 250
 /** https 시도가 이 시간 안에 응답하지 않으면 http 로 넘어간다 (443 포트가 막힌 장비) */
 const HTTPS_FALLBACK_TIMEOUT = 6000
 /** 미리보기 실제 화면을 잠깐 띄워 새 크기로 그리게 하는 시간 */
@@ -141,6 +144,9 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
      * 로그인 토큰을 sessionStorage 에 두는 사이트(원격 콘솔 등)가 흰 화면이 된다.
      */
     seedSession: { origin: string, name: string, storage: Record<string, string> }|null = null
+    /** 스크립트의 window.open 으로 열린 패널이면 열어 준 패널과 중계 번호 (설정 '패널로 열고 중계') */
+    relayHost: HagisWebTabComponent|null = null
+    relayId = ''
     /** 고정 이름 — 지정되면 페이지 제목 대신 표시 */
     paneTitle = ''
     zoomFactor = 1
@@ -279,14 +285,15 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
         }
         if (this.url) {
             this.address = this.url
-            if (this.seedSession) {
-                // 세션 정보를 먼저 심은 뒤에 연다 — 응답이 없어도 3초 뒤에는 그냥 연다
+            if (this.seedSession || this.relayHost) {
+                // 세션 정보·가짜 opener 를 먼저 심은 뒤에 연다 — 응답이 없어도 3초 뒤에는 그냥 연다
                 Promise.race([this.installSessionSeed(), new Promise(resolve => setTimeout(resolve, 3000))])
                     .catch(() => null)
                     .finally(() => {
                         this.seeding = false
                         this.address = this.url // 빈 페이지 이동이 주소창 값을 바꿔 놓았을 수 있다
                         this.navigate()
+                        this.startRelay()
                     })
             } else {
                 this.navigate()
@@ -376,12 +383,13 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
         })
         // 스크립트가 window.open(주소) 로 여는 창은 열어 준 창 핸들이 필요한 사이트가 많아 진짜 창으로 열도록 표시해 둔다
         on('dom-ready', () => {
-            if ((this.hagisConfig.store?.hagis?.web?.scriptOpen ?? 'window') === 'window') {
-                Promise.resolve(wc.executeJavaScript(HAGIS_SCRIPT_OPEN_SHIM)).catch(() => null)
+            const mode: HagisScriptOpenMode = this.hagisConfig.store?.hagis?.web?.scriptOpen ?? 'relay'
+            if (mode === 'window' || mode === 'relay') {
+                Promise.resolve(wc.executeJavaScript(scriptOpenShim(mode))).catch(() => null)
             }
         })
         // 새 탭으로 열리는 링크(target=_blank 등)는 팝업 창 대신 이 패널 안에서 연다 — 진짜 팝업만 창으로
-        on(HAGIS_OPEN_IN_PLACE, (url: string, _disposition: string, openable: boolean) => this.onNewTabRequest(url, openable))
+        on(HAGIS_OPEN_IN_PLACE, (url: string, _disposition: string, openable: boolean, frameName?: string) => this.onNewTabRequest(url, openable, frameName ?? ''))
         try {
             this.web.attachWindowOpenHandler(wc)
         } catch (e) {
@@ -833,7 +841,7 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
      *  - 설정 'pane' (기본): 옆에 새 웹 패널을 만든다 — 이름표(페이지 제목)가 하나 더 생기고 원래 화면은 그대로
      *  - 설정 'same': 이 패널에서 연다
      */
-    private async onNewTabRequest (url: string, openable: boolean): Promise<void> {
+    private async onNewTabRequest (url: string, openable: boolean, frameName = ''): Promise<void> {
         if (this.destroyedFlag) {
             return
         }
@@ -841,7 +849,9 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
             this.notifications.info(`hagis: 이 페이지가 열려던 주소는 웹 패널에서 열 수 없습니다 — ${url.slice(0, 80)}`)
             return
         }
-        if ((this.hagisConfig.store?.hagis?.web?.newTabLinks ?? 'pane') === 'same') {
+        // 스크립트의 window.open 을 패널로 열고 중계하는 경우 (설정 'relay')
+        const relayId = frameName.startsWith(HAGIS_RELAY_PREFIX) ? frameName.slice(HAGIS_RELAY_PREFIX.length) : ''
+        if (!relayId && (this.hagisConfig.store?.hagis?.web?.newTabLinks ?? 'pane') === 'same') {
             this.load(url, null)
             return
         }
@@ -860,7 +870,12 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
         }
         // await 뒤의 코드는 Angular 영역 밖이라, 안에서 만들어야 새 패널 화면이 바로 그려진다
         this.zone.run(() => {
-            const created: any = this.tabs.create({ type: HagisWebTabComponent, inputs: { url, seedSession: seed } })
+            const inputs: any = { url, seedSession: seed }
+            if (relayId) {
+                inputs.relayHost = this
+                inputs.relayId = relayId
+            }
+            const created: any = this.tabs.create({ type: HagisWebTabComponent, inputs })
             if (this.parent instanceof SplitTabComponent) {
                 this.parent.addTab(created, this, 'r')
             } else {
@@ -880,17 +895,25 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
     private async installSessionSeed (): Promise<void> {
         const seed = this.seedSession
         const wc = this.wc
-        if (!seed || !wc) {
+        if ((!seed && !this.relayHost) || !wc) {
             return
         }
         this.seeding = true
         try {
-            const source = `(function () { try {
-                if (location.origin !== ${JSON.stringify(seed.origin)}) { return }
-                var data = ${JSON.stringify(seed.storage)};
-                for (var key in data) { if (sessionStorage.getItem(key) === null) { sessionStorage.setItem(key, data[key]) } }
-                if (!window.name) { window.name = ${JSON.stringify(seed.name)} }
-            } catch (e) { } })()`
+            // 세션 값은 정해진 시간 안에 열리는 문서에만 넣는다 (그 뒤에 앱이 지운 값을 되살리지 않도록)
+            let source = ''
+            if (seed) {
+                source += `(function () { try {
+                    if (Date.now() > ${Date.now() + SEED_WINDOW_MS}) { return }
+                    if (location.origin !== ${JSON.stringify(seed.origin)}) { return }
+                    var data = ${JSON.stringify(seed.storage)};
+                    for (var key in data) { if (sessionStorage.getItem(key) === null) { sessionStorage.setItem(key, data[key]) } }
+                    if (!window.name) { window.name = ${JSON.stringify(seed.name)} }
+                } catch (e) { } })();\n`
+            }
+            if (this.relayHost) {
+                source += HAGIS_OPENER_SHIM
+            }
             // 아직 한 번도 열리지 않은 화면은 디버거 명령에 답하지 않으므로 빈 페이지를 먼저 연다
             await wc.loadURL('about:blank').catch(() => null)
             wc.debugger.attach('1.3')
@@ -898,7 +921,10 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
             await wc.debugger.sendCommand('Page.enable')
             await wc.debugger.sendCommand('Page.addScriptToEvaluateOnNewDocument', { source })
             // "로드 끝" 이벤트는 https 실패 뒤 http 재시도처럼 중간 단계에서도 오므로 기대지 않고, 정해진 시간 뒤에 거둔다
-            setTimeout(() => this.releaseSessionSeed(true), SEED_WINDOW_MS)
+            // (중계 패널의 가짜 opener 는 패널이 닫힐 때까지 둔다)
+            if (!this.relayHost) {
+                setTimeout(() => this.releaseSessionSeed(true), SEED_WINDOW_MS)
+            }
         } catch (e) {
             console.warn('[hagis] session seed failed', e)
             this.releaseSessionSeed()
@@ -927,6 +953,128 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
         this.seedSession = null // 메모리에서도 지운다 (토큰이 들어 있을 수 있다)
         try {
             this.wc?.debugger.detach()
+        } catch { }
+    }
+
+    // ---------------------------------------------------------------- window.open 중계
+
+    private relayTimer: any = null
+    private relayBusy = false
+    /** 열어 준 페이지의 핸들(r.onload)에 "불러옴"을 아직 알리지 않았다 */
+    private relayLoadPending = true
+
+    private originOf (wc: any): string {
+        try {
+            const origin = new URL(wc.getURL()).origin
+            return origin === 'null' ? '' : origin
+        } catch {
+            return ''
+        }
+    }
+
+    /** 페이지 안의 중계 함수에 메시지 묶음을 넘긴다 (JSON 문자열을 한 번 더 문자열로 감싸 코드가 아니라 값으로만 들어가게 한다) */
+    private relayDeliver (wc: any, fn: '__hagisRelay' | '__hagisOpener', list: any[]): Promise<any> {
+        const payload = JSON.stringify(JSON.stringify(list))
+        return Promise.resolve(wc.executeJavaScript(`window.${fn} && window.${fn}.deliver(${payload})`)).catch(() => null)
+    }
+
+    /**
+     * 열어 준 페이지가 window.open 으로 받은 핸들(r)과 이 패널의 window.opener 를 잇는다.
+     * 양쪽 페이지의 보관함을 몇 번씩 비워 상대에게 전달한다 — postMessage 의 대상 출처 규칙은 브라우저와 같게 지킨다.
+     */
+    private startRelay (): void {
+        if (!this.relayHost || this.relayTimer) {
+            return
+        }
+        this.relayTimer = setInterval(() => {
+            this.relayTick().catch(() => null)
+        }, RELAY_POLL_MS)
+    }
+
+    private async relayTick (): Promise<void> {
+        const host = this.relayHost
+        const wc = this.wc
+        if (!host || !wc || this.relayBusy || this.destroyedFlag) {
+            return
+        }
+        this.relayBusy = true
+        try {
+            const hostWc = !host.destroyedFlag ? host.wc : null
+            const kidOrigin = this.originOf(wc)
+            const hostOrigin = hostWc ? this.originOf(hostWc) : ''
+            const id = JSON.stringify(this.relayId)
+
+            // 새 패널이 열렸다 → 핸들의 onload
+            if (hostWc && this.relayLoadPending && kidOrigin && !this.seeding && !this.connecting && !this.lastError && !wc.isLoading()) {
+                this.relayLoadPending = false
+                await this.relayDeliver(hostWc, '__hagisRelay', [{ id: this.relayId, type: 'load' }])
+            }
+
+            // 열어 준 페이지 → 이 패널
+            if (hostWc) {
+                const raw = await Promise.resolve(hostWc.executeJavaScript(`window.__hagisRelay ? window.__hagisRelay.drain(${id}) : '[]'`)).catch(() => '[]')
+                const outgoing: any[] = this.parseList(raw)
+                const toKid: any[] = []
+                for (const m of outgoing) {
+                    if (m.type === 'close') {
+                        this.closeSelf()
+                        return
+                    }
+                    if (m.type === 'msg' && targetOriginMatches(String(m.target ?? '/'), hostOrigin, kidOrigin)) {
+                        toKid.push({ type: 'msg', data: m.data, from: hostOrigin })
+                    }
+                }
+                if (toKid.length) {
+                    await this.relayDeliver(wc, '__hagisOpener', toKid)
+                }
+            }
+
+            // 이 패널 → 열어 준 페이지
+            const rawKid = await Promise.resolve(wc.executeJavaScript(`window.__hagisOpener ? window.__hagisOpener.drain() : '[]'`)).catch(() => '[]')
+            const toHost: any[] = []
+            for (const m of this.parseList(rawKid)) {
+                if (m.type === 'close') {
+                    this.closeSelf()
+                    return
+                }
+                if (hostWc && m.type === 'msg' && targetOriginMatches(String(m.target ?? '/'), kidOrigin, hostOrigin)) {
+                    toHost.push({ id: this.relayId, type: 'msg', data: m.data, from: kidOrigin })
+                }
+            }
+            if (toHost.length && hostWc) {
+                await this.relayDeliver(hostWc, '__hagisRelay', toHost)
+            }
+        } finally {
+            this.relayBusy = false
+        }
+    }
+
+    private parseList (raw: any): any[] {
+        try {
+            const list = JSON.parse(String(raw))
+            return Array.isArray(list) ? list : []
+        } catch {
+            return []
+        }
+    }
+
+    /** 페이지가 window.close() / r.close() 를 불렀다 */
+    private closeSelf (): void {
+        this.zone.run(() => this.destroy())
+    }
+
+    private stopRelay (): void {
+        if (this.relayTimer) {
+            clearInterval(this.relayTimer)
+            this.relayTimer = null
+        }
+        const host = this.relayHost
+        this.relayHost = null
+        // 열어 준 페이지의 핸들에 r.closed = true
+        try {
+            if (host && !host.destroyedFlag && host.wc) {
+                this.relayDeliver(host.wc, '__hagisRelay', [{ id: this.relayId, type: 'closed' }])
+            }
         } catch { }
     }
 
@@ -1026,6 +1174,7 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
             return
         }
         this.destroyedFlag = true
+        this.stopRelay()
         this.releaseSessionSeed(true)
         this.clearFallbackTimer()
         this.stopSnapshotTimer()
