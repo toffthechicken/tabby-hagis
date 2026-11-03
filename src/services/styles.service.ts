@@ -411,6 +411,24 @@ body.hagis-dock-autohide.hagis-dock-side-right app-root .content.main > .content
 .hagis-dock-auto.hagis-file-drop-target { background: transparent !important; }
 .hagis-dock.hagis-file-drop-target .hagis-dock-glass { border-color: #c6ff00; box-shadow: 0 0 0 2px rgba(198, 255, 0, .45), 0 8px 22px rgba(0, 0, 0, .45); }
 
+/* ===== hagis: 툴바 버튼에 "Hagis" 글자 — 아이콘만으로는 무엇인지 알아보기 어렵다 ===== */
+.btn-tab-bar:has(> svg.hagis-toolbar-icon) {
+    width: auto !important;
+    min-width: 46px;
+    padding-left: 10px !important;
+    padding-right: 12px !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+}
+.btn-tab-bar:has(> svg.hagis-toolbar-icon)::after {
+    content: 'Hagis';
+    font: 700 12px/1 system-ui, sans-serif;
+    letter-spacing: .4px;
+}
+.btn-tab-bar:has(> svg.hagis-toolbar-icon) > svg { flex: none; color: #c6ff00; }
+
 /* ===== hagis: 파일 끌어다 놓기 ===== */
 .hagis-file-drop-target {
     outline: 2px dashed #c6ff00 !important;

@@ -61,7 +61,7 @@ export class HagisCommandProvider extends CommandProvider {
         const commands: Command[] = [
             {
                 id: 'hagis:launcher',
-                label: 'hagis — 워크스페이스',
+                label: 'Hagis — 워크스페이스',
                 sublabel: '고객사 워크스페이스·레이아웃 프리셋 열기',
                 icon: HAGIS_ICON,
                 weight: -5,

@@ -157,7 +157,7 @@ macOS·Linux 는 아직 테스트하지 못했습니다. <sub>Copy `package.json
 
 | 어디서 · Where | 무엇을 · What |
 | --- | --- |
-| 툴바 왼쪽 hagis 아이콘<br><sub>hagis icon in the toolbar</sub> | hagis 런처 — 워크스페이스·프리셋·저장·컴팩트·글자 일괄<br><sub>Launcher: workspaces, presets, save, compact, font sizes</sub> |
+| 툴바 왼쪽 **HAGIS** 버튼<br><sub>The **HAGIS** button at the left of the toolbar</sub> | hagis 런처 — 워크스페이스·프리셋·저장·컴팩트·글자 일괄<br><sub>Launcher: workspaces, presets, save, compact, font sizes</sub> |
 | Tabby `＋` 버튼<br><sub>Tabby `＋` button</sub> | 프로필 목록의 `웹 GUI`, `Markdown 뷰어`<br><sub>`Web GUI` and `Markdown viewer` profiles</sub> |
 | 패널 태그 우클릭 · ☰ 버튼<br><sub>Right-click a tag · ☰ button</sub> | 패널 메뉴 — 이름, 색, SFTP, 메인 무대, 내용 복사·캡처, 복제, 최대화…<br><sub>Pane menu: rename, color, SFTP, main stage, copy & capture, duplicate, maximize…</sub> |
 | 명령 팔레트 `Ctrl+Shift+P` → `hagis:`<br><sub>Command palette → `hagis:`</sub> | 독 보이기/숨기기, 글자 크기 일괄, 워크스페이스 열기, 복사·캡처<br><sub>Dock toggle, bulk font size, open workspace, copy & capture</sub> |
