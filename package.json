@@ -1,6 +1,6 @@
 {
   "name": "tabby-hagis",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "HAGIS (Hub for All Gear, In Sight) — Tabby workspace plugin for network engineers: customer layouts, main stage + previews, web GUI panes, dock, resume / 네트워크 엔지니어용 통합 워크스페이스",
   "keywords": [
     "tabby-plugin",
