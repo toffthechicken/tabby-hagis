@@ -85,6 +85,12 @@ export class HagisConfigProvider extends ConfigProvider {
                  * 'pane' = 옆에 새 패널(이름표가 하나 더 생긴다) | 'same' = 이 패널에서
                  */
                 newTabLinks: 'pane' as 'pane' | 'same',
+                /**
+                 * 페이지의 스크립트가 window.open(주소) 로 여는 창
+                 * 'window' = 진짜 창으로 (기본) — 열어 준 창과 메시지를 주고받는 사이트(원격 콘솔·결제창 등)가 동작한다
+                 * 'pane'   = 링크처럼 새 패널로 (창 핸들이 없어 그런 사이트는 동작하지 않는다)
+                 */
+                scriptOpen: 'window' as 'window' | 'pane',
             },
         },
     }

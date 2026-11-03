@@ -228,6 +228,16 @@ import { HagisWorkspaceService } from '../services/workspace.service'
             <option value="same">이 패널에서 열기</option>
         </select>
     </div>
+    <div class="form-line">
+        <div class="header">
+            <div class="title">스크립트가 여는 창</div>
+            <div class="description">버튼을 눌렀을 때 페이지의 코드(window.open)가 여는 창입니다. 열어 준 창과 정보를 주고받는 사이트(원격 콘솔·결제·인증 창 등)는 진짜 창이어야 동작합니다. 패널로 바꾸면 그런 사이트는 비어 보일 수 있습니다.</div>
+        </div>
+        <select class="form-control" style="width: 220px" [(ngModel)]="config.store.hagis.web.scriptOpen" (ngModelChange)="config.save()">
+            <option value="window">진짜 창으로 열기 (기본)</option>
+            <option value="pane">옆에 새 패널로 열기</option>
+        </select>
+    </div>
     <p class="text-muted small">
         웹 패널은 Tabby와 분리된 세션(persist:hagis-web)에서 Node.js 권한 없이 실행됩니다.
         인증서 검증은 끄지 않으며, 자체 서명 인증서는 아래 목록에 있는 호스트·지문만 허용합니다.

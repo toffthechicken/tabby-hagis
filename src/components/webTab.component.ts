@@ -1,11 +1,13 @@
 import { Component, ElementRef, Injector, NgZone, ViewChild, AfterViewInit, OnDestroy, OnInit } from '@angular/core'
 import { AppService, BaseTabComponent, ConfigService, GetRecoveryTokenOptions, NotificationsService, PlatformService, RecoveryToken, SplitTabComponent, TabsService } from 'tabby-core'
-import { HagisCertificateProblem, HagisWebService, HAGIS_OPEN_IN_PLACE, HAGIS_WEB_PARTITION } from '../services/web.service'
+import { HagisCertificateProblem, HagisWebService, HAGIS_OPEN_IN_PLACE, HAGIS_SCRIPT_OPEN_SHIM, HAGIS_WEB_PARTITION } from '../services/web.service'
 import { HagisPaneService } from '../services/pane.service'
 import { HagisStageService } from '../services/stage.service'
 import { HagisViewSyncContext, HagisViewSyncService, rectsOverlap } from '../services/viewSync.service'
 import { HagisStageRole } from '../models'
 
+/** 새 패널이 열어 준 페이지의 sessionStorage 를 심어 두는 시간 — 이 안에 열리는 문서에 적용된다 */
+const SEED_WINDOW_MS = 12000
 /** https 시도가 이 시간 안에 응답하지 않으면 http 로 넘어간다 (443 포트가 막힌 장비) */
 const HTTPS_FALLBACK_TIMEOUT = 6000
 /** 미리보기 실제 화면을 잠깐 띄워 새 크기로 그리게 하는 시간 */
@@ -133,6 +135,12 @@ const LIVE_REFRESH_MS = 450
 export class HagisWebTabComponent extends BaseTabComponent implements OnInit, AfterViewInit, OnDestroy {
     /** 처음 열 주소 (입력값) */
     url = ''
+    /**
+     * 새 탭 요청으로 열린 패널이 이어받을 세션 정보 — 열어 준 페이지의 sessionStorage·window.name.
+     * 브라우저는 새 창을 열 때 sessionStorage 를 복사해 주는데, 주소만 따로 여는 패널은 비어 있어
+     * 로그인 토큰을 sessionStorage 에 두는 사이트(원격 콘솔 등)가 흰 화면이 된다.
+     */
+    seedSession: { origin: string, name: string, storage: Record<string, string> }|null = null
     /** 고정 이름 — 지정되면 페이지 제목 대신 표시 */
     paneTitle = ''
     zoomFactor = 1
@@ -271,7 +279,18 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
         }
         if (this.url) {
             this.address = this.url
-            this.navigate()
+            if (this.seedSession) {
+                // 세션 정보를 먼저 심은 뒤에 연다 — 응답이 없어도 3초 뒤에는 그냥 연다
+                Promise.race([this.installSessionSeed(), new Promise(resolve => setTimeout(resolve, 3000))])
+                    .catch(() => null)
+                    .finally(() => {
+                        this.seeding = false
+                        this.address = this.url // 빈 페이지 이동이 주소창 값을 바꿔 놓았을 수 있다
+                        this.navigate()
+                    })
+            } else {
+                this.navigate()
+            }
         }
         this.unregisterSync = this.viewSync.register(this.syncView)
     }
@@ -353,6 +372,12 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
             }
             if (this.parent instanceof SplitTabComponent) {
                 this.parent.focus(this)
+            }
+        })
+        // 스크립트가 window.open(주소) 로 여는 창은 열어 준 창 핸들이 필요한 사이트가 많아 진짜 창으로 열도록 표시해 둔다
+        on('dom-ready', () => {
+            if ((this.hagisConfig.store?.hagis?.web?.scriptOpen ?? 'window') === 'window') {
+                Promise.resolve(wc.executeJavaScript(HAGIS_SCRIPT_OPEN_SHIM)).catch(() => null)
             }
         })
         // 새 탭으로 열리는 링크(target=_blank 등)는 팝업 창 대신 이 패널 안에서 연다 — 진짜 팝업만 창으로
@@ -659,6 +684,9 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
     // ---------------------------------------------------------------- 탐색
 
     private onNavigated (url: string): void {
+        if (this.seeding && url === 'about:blank') {
+            return
+        }
         this.clearFallbackTimer()
         this.pendingFallback = null
         this.connecting = ''
@@ -805,7 +833,7 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
      *  - 설정 'pane' (기본): 옆에 새 웹 패널을 만든다 — 이름표(페이지 제목)가 하나 더 생기고 원래 화면은 그대로
      *  - 설정 'same': 이 패널에서 연다
      */
-    private onNewTabRequest (url: string, openable: boolean): void {
+    private async onNewTabRequest (url: string, openable: boolean): Promise<void> {
         if (this.destroyedFlag) {
             return
         }
@@ -817,12 +845,89 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
             this.load(url, null)
             return
         }
-        const created: any = this.tabs.create({ type: HagisWebTabComponent, inputs: { url } })
-        if (this.parent instanceof SplitTabComponent) {
-            this.parent.addTab(created, this, 'r')
-        } else {
-            this.app.wrapAndAddTab(created)
+        // 브라우저가 새 창을 열 때 해 주는 것처럼 같은 사이트의 sessionStorage 를 복사해 넘긴다
+        let seed: HagisWebTabComponent['seedSession'] = null
+        try {
+            const snapshot = await this.wc?.executeJavaScript(
+                `(() => ({ origin: location.origin, name: window.name, storage: Object.fromEntries(Object.entries(sessionStorage)) }))()`,
+            )
+            if (snapshot && new URL(url).origin === snapshot.origin && Object.keys(snapshot.storage ?? {}).length + (snapshot.name ? 1 : 0) > 0) {
+                seed = { origin: snapshot.origin, name: snapshot.name ?? '', storage: snapshot.storage ?? {} }
+            }
+        } catch { }
+        if (this.destroyedFlag) {
+            return
         }
+        // await 뒤의 코드는 Angular 영역 밖이라, 안에서 만들어야 새 패널 화면이 바로 그려진다
+        this.zone.run(() => {
+            const created: any = this.tabs.create({ type: HagisWebTabComponent, inputs: { url, seedSession: seed } })
+            if (this.parent instanceof SplitTabComponent) {
+                this.parent.addTab(created, this, 'r')
+            } else {
+                this.app.wrapAndAddTab(created)
+            }
+        })
+    }
+
+    private seedDebuggerAttached = false
+    /** 세션 정보를 심는 동안 — 이때의 빈 페이지 이동은 사용자에게 보이지 않게 한다 */
+    private seeding = false
+
+    /**
+     * 페이지 스크립트가 돌기 전에 sessionStorage 를 채운다 (같은 사이트일 때만, 이미 있는 값은 건드리지 않음).
+     * 새 문서가 열릴 때마다 실행되는 스크립트를 디버깅 프로토콜로 등록하고, 첫 로드가 끝나면 디버거를 뗀다.
+     */
+    private async installSessionSeed (): Promise<void> {
+        const seed = this.seedSession
+        const wc = this.wc
+        if (!seed || !wc) {
+            return
+        }
+        this.seeding = true
+        try {
+            const source = `(function () { try {
+                if (location.origin !== ${JSON.stringify(seed.origin)}) { return }
+                var data = ${JSON.stringify(seed.storage)};
+                for (var key in data) { if (sessionStorage.getItem(key) === null) { sessionStorage.setItem(key, data[key]) } }
+                if (!window.name) { window.name = ${JSON.stringify(seed.name)} }
+            } catch (e) { } })()`
+            // 아직 한 번도 열리지 않은 화면은 디버거 명령에 답하지 않으므로 빈 페이지를 먼저 연다
+            await wc.loadURL('about:blank').catch(() => null)
+            wc.debugger.attach('1.3')
+            this.seedDebuggerAttached = true
+            await wc.debugger.sendCommand('Page.enable')
+            await wc.debugger.sendCommand('Page.addScriptToEvaluateOnNewDocument', { source })
+            // "로드 끝" 이벤트는 https 실패 뒤 http 재시도처럼 중간 단계에서도 오므로 기대지 않고, 정해진 시간 뒤에 거둔다
+            setTimeout(() => this.releaseSessionSeed(true), SEED_WINDOW_MS)
+        } catch (e) {
+            console.warn('[hagis] session seed failed', e)
+            this.releaseSessionSeed()
+        }
+    }
+
+    /**
+     * 심어 둔 스크립트를 거둔다.
+     * 빈 페이지의 "로드 끝" 이벤트가 실제 주소의 이동이 시작된 뒤에 늦게 도착할 수 있으므로,
+     * 실제 주소가 아직 불러오는 중이거나 빈 페이지인 동안에는 거두지 않는다 (force: 닫을 때).
+     */
+    private releaseSessionSeed (force = false): void {
+        if (!this.seedDebuggerAttached) {
+            return
+        }
+        if (!force) {
+            let busy = true
+            try {
+                busy = !this.currentUrl || this.wc.getURL() === 'about:blank' || !!this.wc.isLoading()
+            } catch { }
+            if (busy) {
+                return
+            }
+        }
+        this.seedDebuggerAttached = false
+        this.seedSession = null // 메모리에서도 지운다 (토큰이 들어 있을 수 있다)
+        try {
+            this.wc?.debugger.detach()
+        } catch { }
     }
 
     /**
@@ -921,6 +1026,7 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
             return
         }
         this.destroyedFlag = true
+        this.releaseSessionSeed(true)
         this.clearFallbackTimer()
         this.stopSnapshotTimer()
         clearTimeout(this.coverClearTimer)

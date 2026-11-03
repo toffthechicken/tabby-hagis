@@ -227,6 +227,7 @@ macOS·Linux 는 아직 테스트하지 못했습니다. <sub>Copy `package.json
 - 웹 패널의 HTTP 기본 인증(401) 창은 아직 지원하지 않습니다 (↗ 버튼으로 기본 브라우저에서 열기). <sub>HTTP Basic-auth prompts are not supported yet — use the ↗ button to open the page in your browser.</sub>
 - 터미널 패널의 글자 크기는 워크스페이스로 저장했을 때 유지됩니다 (Tabby 자체 탭 복원은 저장하지 않음). <sub>Pane font sizes persist when saved as a workspace; Tabby's own tab restore does not keep them.</sub>
 - 크기를 지정한 `window.open` 팝업(로그인·인쇄 창 등), 페이지가 직접 내용을 채우는 빈 창, 양식 POST 새 창은 별도 창으로 열립니다. <sub>Sized `window.open` popups (login, print…), blank windows the page fills itself and form-POST windows open as separate windows.</sub>
+- 버튼을 눌러 페이지의 코드가 `window.open(주소)` 로 여는 창(원격 콘솔·결제·인증 창처럼 열어 준 창과 메시지를 주고받는 사이트)도 기본은 별도 창입니다. 설정 → hagis → "스크립트가 여는 창"에서 패널로 바꿀 수 있지만, 그런 사이트는 패널에서 비어 보일 수 있습니다. 링크(`target=_blank`)는 계속 새 패널로 열립니다. <sub>Windows opened by a page's own script via `window.open(url)` (remote consoles, payment/auth windows that talk back to their opener) open as real windows by default; you can switch that to a pane in Settings → hagis, but such sites may stay blank there. Plain links (`target=_blank`) still open in a new pane.</sub>
 
 ---
 

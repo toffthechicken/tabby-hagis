@@ -7,6 +7,25 @@ import { HagisTrustedCertificate } from '../config'
 export const HAGIS_WEB_PARTITION = 'persist:hagis-web'
 /** 새 탭으로 열려던 링크를 패널 안에서 열라는 webContents 이벤트 (attachWindowOpenHandler) */
 export const HAGIS_OPEN_IN_PLACE = 'hagis-open-in-place'
+/** 스크립트의 window.open 이 연 창이라는 표식 (창 이름 앞에 붙는다) */
+export const HAGIS_SCRIPT_OPEN_PREFIX = '__hagis_script_'
+/**
+ * 페이지에 심는 코드 — 기능 인자 없이 window.open(주소) / (주소, '_blank') 로 여는 창의 이름에 표식을 붙인다.
+ * 메인 프로세스 처리기가 이 표식을 보고 진짜 창으로 열어 준다 (opener·창 핸들·postMessage 가 그대로 동작).
+ * 크기 등 기능을 지정했거나 이름이 있는 창은 건드리지 않는다. 고정 문자열이며 사용자 입력은 들어가지 않는다.
+ */
+export const HAGIS_SCRIPT_OPEN_SHIM = `(() => {
+    if (window.__hagisOpenShim) { return }
+    window.__hagisOpenShim = 1
+    var original = window.open
+    var count = 0
+    window.open = function (url, target, features) {
+        if (!features && (target === undefined || target === null || target === '' || target === '_blank')) {
+            target = '${HAGIS_SCRIPT_OPEN_PREFIX}' + (++count) + '_' + Date.now().toString(36)
+        }
+        return original.call(this, url, target, features)
+    }
+})()`
 
 export interface HagisCertificateProblem {
     host: string
@@ -73,6 +92,8 @@ export class HagisWebService {
      *  - 진짜 팝업 → 그대로 팝업 창으로 띄우고 맨 앞으로 가져온다:
      *      크기·위치를 지정한 window.open (로그인·인쇄·첨부 보기), 빈 창(about:blank)과 blob:/data:/javascript: 창
      *      (페이지가 직접 내용을 채우는 창), 양식 POST (패널로는 POST 를 옮길 수 없다)
+     *      + 스크립트의 window.open(주소): 열어 준 창 핸들(opener·postMessage)이 있어야 하는 사이트가 많아 창으로 연다
+     *        (페이지에 심은 아래 SCRIPT_OPEN_SHIM 이 창 이름에 표식을 붙여 링크 클릭과 구분한다)
      *  - "새 탭으로 열기" 링크 → 막고 HAGIS_OPEN_IN_PLACE 이벤트로 알린다 (설정에 따라 새 패널 또는 이 패널에서 연다)
      *
      * 허용/거부는 메인 프로세스에서 즉시 답해야 한다 — remote 콜백은 비동기라 답을 돌려줄 수 없으므로,
@@ -85,6 +106,7 @@ export class HagisWebService {
                 wc.setWindowOpenHandler(function (details) {
                     var url = String(details.url || '');
                     var popup = details.disposition === 'new-window'
+                        || String(details.frameName || '').indexOf('${HAGIS_SCRIPT_OPEN_PREFIX}') === 0
                         || url === '' || url === 'about:blank'
                         || /^(blob|data|javascript):/i.test(url)
                         || !!details.postBody;
