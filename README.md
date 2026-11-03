@@ -57,6 +57,7 @@ save a layout per customer and reopen it in one click, put device web GUIs next 
 | **패널별 글자 크기**<br><sub>Per-pane font size</sub> | `A− 100% A+ │ XS S M L │ ⤢` 컨트롤. 버튼 색은 Tabby 터미널 색상 설정을 따르고, 패널 폭이 좁으면 자동으로 접힙니다.<br><sub>Per-pane `A− / A+` and presets. Button colors follow Tabby's terminal color scheme; the control folds away in narrow panes.</sub> |
 | **Markdown 뷰어**<br><sub>Markdown viewer</sub> | `.md/.txt/.log` 파일 자동 새로고침, 링크·상대 이미지 지원, HTML 정화(DOMPurify).<br><sub>Auto-reloading `.md/.txt/.log` viewer with links and relative images; HTML is sanitized with DOMPurify.</sub> |
 | **파일 끌어다 놓기**<br><sub>Drag & drop</sub> | 탭 바 → 새 탭, 빈 패널 → 그 자리, 실행 중인 터미널 → 확인 창. 경로 붙여넣기는 셸 종류별로 안전하게 인용합니다.<br><sub>Drop on the tab bar to open, on an empty pane to load, on a running terminal to choose "replace / paste path". Pasted paths are quoted safely per shell.</sub> |
+| **패널 경계선**<br><sub>Pane borders</sub> | 분할된 패널 사이에 선을 그려 구분하기 쉽게 합니다. 설정 → hagis 에서 켜고, 색(7가지 + 직접 고르기)과 굵기(1~6px)를 정합니다. 웹 패널 옆에서도 가려지지 않습니다.<br><sub>Draw lines between split panes (Settings → hagis): pick a color (7 swatches + custom) and thickness (1–6 px). Lines stay visible next to web panes too.</sub> |
 | **모서리 크기 조절 · 컴팩트 모드**<br><sub>Corner resize & compact mode</sub> | 가로·세로 경계가 만나는 모서리를 끌어 두 방향을 동시에 조절. 컴팩트 모드는 탭 바·여백·글자를 줄입니다.<br><sub>Drag the corner where two dividers meet to resize both axes; compact mode shrinks tab bar, padding and fonts.</sub> |
 
 ---

@@ -27,6 +27,14 @@ export class HagisConfigProvider extends ConfigProvider {
             paneTags: true,
             /** 가로·세로 경계가 만나는 모서리 핸들로 두 방향 동시 크기 조절 */
             cornerHandles: true,
+            /** 패널 사이 경계선 — 어느 패널이 어디까지인지 구분하기 쉽게 (기본: 끔) */
+            paneBorders: {
+                enabled: false,
+                /** #rrggbb */
+                color: '#c6ff00',
+                /** px (1~6) */
+                width: 2,
+            },
             /**
              * 터미널 이어가기 — Tabby를 껐다 켜거나 워크스페이스를 다시 열 때,
              * 그 패널에서 실행 중이던 AI CLI 를 이어가기 명령으로 다시 실행한다.

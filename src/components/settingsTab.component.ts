@@ -88,6 +88,29 @@ import { HagisWorkspaceService } from '../services/workspace.service'
     </div>
     <div class="form-line">
         <div class="header">
+            <div class="title">패널 경계선</div>
+            <div class="description">분할된 패널 사이에 선을 그려 구분하기 쉽게 합니다. 색과 굵기를 직접 고를 수 있습니다.</div>
+        </div>
+        <toggle [(ngModel)]="config.store.hagis.paneBorders.enabled" (ngModelChange)="config.save()"></toggle>
+    </div>
+    <div class="form-line" *ngIf="config.store.hagis.paneBorders.enabled">
+        <div class="header">
+            <div class="title">경계선 색 · 굵기</div>
+            <div class="hagis-swatches">
+                <button type="button" class="hagis-swatch" *ngFor="let c of borderColors" [style.background]="c.value" [title]="c.label" (click)="setBorderColor(c.value)"></button>
+            </div>
+        </div>
+        <input type="color" class="form-control form-control-color hagis-color-input" [ngModel]="config.store.hagis.paneBorders.color" (ngModelChange)="setBorderColor($event)" title="직접 고르기">
+        <select class="form-control ms-2" style="width: 90px" [(ngModel)]="config.store.hagis.paneBorders.width" (ngModelChange)="config.save()">
+            <option [ngValue]="1">1px</option>
+            <option [ngValue]="2">2px</option>
+            <option [ngValue]="3">3px</option>
+            <option [ngValue]="4">4px</option>
+            <option [ngValue]="6">6px</option>
+        </select>
+    </div>
+    <div class="form-line">
+        <div class="header">
             <div class="title">독 (화면 옆 실행 막대)</div>
             <div class="description">자주 쓰는 프로그램·프로필·워크스페이스·웹 주소 아이콘. 탐색기에서 프로그램을 끌어다 놓으면 추가, 우클릭: 편집</div>
         </div>
@@ -216,6 +239,10 @@ import { HagisWorkspaceService } from '../services/workspace.service'
 .hagis-ws-fields { flex: auto; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .hagis-ws-actions { flex: none; display: flex; gap: 4px; }
 .hagis-cert code { word-break: break-all; }
+.hagis-swatches { display: flex; gap: 6px; margin-top: 4px; }
+.hagis-swatch { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); cursor: pointer; }
+.hagis-swatch:hover { border-color: #fff; }
+.hagis-color-input { width: 48px; height: 34px; padding: 2px; }
 .hagis-credit {
     display: inline-flex; align-items: center; gap: 8px; margin: -4px 0 18px; padding: 4px 12px; border-radius: 999px;
     font-size: 12px; background: rgba(198, 255, 0, .08); border: 1px solid rgba(198, 255, 0, .35);
@@ -234,6 +261,15 @@ export class HagisSettingsTabComponent {
     edit = { name: '', customer: '', description: '' }
     zoomOptions = [-6, -5, -4, -3, -2, -1, ...ZOOM_PRESETS.filter(p => p.zoom >= 0).map(p => p.zoom)]
     author = HAGIS_AUTHOR
+    borderColors = [
+        { label: '형광 (기본)', value: '#c6ff00' },
+        { label: '하늘', value: '#00f0ff' },
+        { label: '흰색', value: '#ffffff' },
+        { label: '회색', value: '#6b7280' },
+        { label: '주황', value: '#ff9f1c' },
+        { label: '분홍', value: '#ff4d9d' },
+        { label: '빨강', value: '#ff5f5f' },
+    ]
     instagram = HAGIS_INSTAGRAM
 
     constructor (
@@ -247,6 +283,13 @@ export class HagisSettingsTabComponent {
 
     percent (z: number): number {
         return zoomPercent(z)
+    }
+
+    setBorderColor (color: string): void {
+        if (/^#[0-9a-f]{6}$/i.test(color)) {
+            this.config.store.hagis.paneBorders.color = color
+            this.config.save()
+        }
     }
 
     openInstagram (event: Event): void {

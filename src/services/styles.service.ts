@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core'
 import { ConfigService } from 'tabby-core'
+import { HagisViewSyncService } from './viewSync.service'
 
 const GLOBAL_CSS = `
 /* ===== hagis: 패널 크롬 (네임태그 + 글자 크기) ===== */
@@ -411,6 +412,19 @@ body.hagis-dock-autohide.hagis-dock-side-right app-root .content.main > .content
 .hagis-dock-auto.hagis-file-drop-target { background: transparent !important; }
 .hagis-dock.hagis-file-drop-target .hagis-dock-glass { border-color: #c6ff00; box-shadow: 0 0 0 2px rgba(198, 255, 0, .45), 0 8px 22px rgba(0, 0, 0, .45); }
 
+/* ===== hagis: 패널 경계선 (설정 → 패널 경계선) ===== */
+/* Tabby 가 패널 사이에 두는 크기 조절 영역(split-tab-spanner) 한가운데에 선을 그린다 */
+body.hagis-pane-borders split-tab-spanner::before {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+    background: var(--hagis-border-color, #c6ff00);
+    transition: opacity .12s;
+}
+body.hagis-pane-borders split-tab-spanner.h::before { top: 0; bottom: 0; left: calc(50% - var(--hagis-border-width, 2px) / 2); width: var(--hagis-border-width, 2px); }
+body.hagis-pane-borders split-tab-spanner.v::before { left: 0; right: 0; top: calc(50% - var(--hagis-border-width, 2px) / 2); height: var(--hagis-border-width, 2px); }
+body.hagis-pane-borders split-tab-spanner.active::before { opacity: .55; }
+
 /* ===== hagis: 툴바 버튼에 "Hagis" 글자 — 아이콘만으로는 무엇인지 알아보기 어렵다 ===== */
 .btn-tab-bar:has(> svg.hagis-toolbar-icon) {
     width: auto !important;
@@ -448,7 +462,7 @@ export class HagisStylesService {
     private styleElement: HTMLStyleElement|null = null
     private varsElement: HTMLStyleElement|null = null
 
-    constructor (private config: ConfigService) { }
+    constructor (private config: ConfigService, private viewSync: HagisViewSyncService) { }
 
     init (): void {
         if (this.styleElement) {
@@ -489,6 +503,20 @@ export class HagisStylesService {
         }
     }
 
+    /**
+     * 패널 경계선 — 켜짐/색/굵기를 body 에 반영한다.
+     * 웹 패널(네이티브 뷰)은 HTML 선 위에 그려져 선을 덮으므로, 켜져 있으면 웹 화면을 선 굵기의 절반만큼 안으로 줄인다.
+     */
+    private applyBorders (borders?: { enabled?: boolean, color?: string, width?: number }): void {
+        const enabled = !!borders?.enabled
+        const color = typeof borders?.color === 'string' && /^#[0-9a-f]{6}$/i.test(borders.color.trim()) ? borders.color.trim() : '#c6ff00'
+        const width = Math.min(6, Math.max(1, Math.round(Number(borders?.width) || 2)))
+        document.body.classList.toggle('hagis-pane-borders', enabled)
+        document.body.style.setProperty('--hagis-border-color', color)
+        document.body.style.setProperty('--hagis-border-width', `${width}px`)
+        this.viewSync.setInset(enabled ? Math.ceil(width / 2) : 0)
+    }
+
     apply (): void {
         const hagis = this.config.store?.hagis
         if (!hagis) {
@@ -497,6 +525,7 @@ export class HagisStylesService {
         document.body.classList.toggle('hagis-compact', !!hagis.compactMode)
         document.body.classList.toggle('hagis-hide-pane-controls', !hagis.paneControls)
         document.body.classList.toggle('hagis-tags-on', hagis.paneTags !== false)
+        this.applyBorders(hagis.paneBorders)
         this.applyTerminalColors()
         if (this.varsElement) {
             const spaciness = Math.min(1, Math.max(0.1, Number(hagis.compactSpaciness) || 0.5))

@@ -20,6 +20,8 @@ export interface HagisViewSyncContext {
      * 네이티브 웹 화면은 HTML 보다 위에 그려지므로, 겹치는 웹 패널은 그동안 캡처 그림으로 바꿔 둔다.
      */
     occluder: HagisRect|null
+    /** 패널 경계선이 켜져 있을 때 웹 화면을 각 면에서 줄일 크기 (CSS px) */
+    inset: number
 }
 
 export function rectsOverlap (a: HagisRect, b: HagisRect): boolean {
@@ -52,6 +54,7 @@ export class HagisViewSyncService {
     private timer: any = null
     private initialized = false
     private occluder: HagisRect|null = null
+    private inset = 0
     /** 캡처 그림으로 바꾸는 중인 웹 패널 수 */
     private freezing = 0
 
@@ -72,6 +75,14 @@ export class HagisViewSyncService {
     setOccluder (rect: HagisRect|null): void {
         this.occluder = rect
         this.kick()
+    }
+
+    /** 웹 화면을 가장자리에서 이만큼 안쪽으로 (경계선이 가려지지 않게) */
+    setInset (px: number): void {
+        if (px !== this.inset) {
+            this.inset = px
+            this.kick()
+        }
     }
 
     beginFreeze (): void {
@@ -158,6 +169,7 @@ export class HagisViewSyncService {
             pageZoom: this.pageZoom(),
             now: performance.now(),
             occluder: this.occluder,
+            inset: this.inset,
         }
         for (const fn of this.views) {
             try {

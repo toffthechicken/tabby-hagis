@@ -397,11 +397,12 @@ export class HagisWebTabComponent extends BaseTabComponent implements OnInit, Af
             if (!wanted || !hasArea) {
                 return
             }
+            const inset = ctx.inset
             const bounds = {
-                x: Math.round(rect.left * ctx.pageZoom),
-                y: Math.round(rect.top * ctx.pageZoom),
-                width: Math.round(rect.width * ctx.pageZoom),
-                height: Math.round(rect.height * ctx.pageZoom),
+                x: Math.round((rect.left + inset) * ctx.pageZoom),
+                y: Math.round((rect.top + inset) * ctx.pageZoom),
+                width: Math.max(1, Math.round((rect.width - inset * 2) * ctx.pageZoom)),
+                height: Math.max(1, Math.round((rect.height - inset * 2) * ctx.pageZoom)),
             }
             const key = `${bounds.x},${bounds.y},${bounds.width},${bounds.height}`
             const resized = key !== this.lastBounds
