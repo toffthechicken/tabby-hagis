@@ -22,7 +22,7 @@ export type HagisLauncherResult =
 <div class="modal-header hagis-launcher-header">
     <div>
         <div class="hagis-logo">hagis <span>by tabby</span></div>
-        <div class="hagis-tagline">네트워크 엔지니어용 통합 워크스페이스 <span class="hagis-maker">· made by <b>JakeandToff</b></span></div>
+        <div class="hagis-tagline">Hub for All Gear, In Sight <span class="hagis-maker">· made by <b>JakeandToff</b></span></div>
     </div>
     <input class="form-control hagis-search" [(ngModel)]="query" placeholder="고객사·워크스페이스 검색" autofocus>
 </div>

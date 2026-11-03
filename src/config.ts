@@ -50,6 +50,14 @@ export class HagisConfigProvider extends ConfigProvider {
                 autoHide: false,
                 items: [] as HagisDockItem[],
             },
+            /** 업데이트 확인 — GitHub 릴리스를 하루 한 번 본다 */
+            update: {
+                /** 'ask' 새 버전이 있으면 물어보기 | 'auto' 자동으로 설치(재시작은 직접) | 'off' 확인하지 않음 */
+                mode: 'ask' as 'ask' | 'auto' | 'off',
+                lastCheck: 0,
+                /** "이 버전은 건너뛰기" 로 정한 버전 */
+                skipVersion: '',
+            },
             preview: {
                 /**
                  * 메인 무대 미리보기(웹) 캡처 주기 (초)

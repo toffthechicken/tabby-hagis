@@ -19,6 +19,7 @@ import { HagisStylesService } from './services/styles.service'
 import { HagisResumeService } from './services/resume.service'
 import { HagisStageService } from './services/stage.service'
 import { HagisDockService } from './services/dock.service'
+import { HagisUpdateService } from './services/update.service'
 import { HagisWorkspaceService } from './services/workspace.service'
 import { scrubInheritedSessionEnv } from './utils'
 
@@ -72,6 +73,7 @@ export default class HagisModule {
         workspace: HagisWorkspaceService,
         stage: HagisStageService,
         dock: HagisDockService,
+        updates: HagisUpdateService,
     ) {
         const scrubbed = scrubInheritedSessionEnv()
         if (scrubbed.length) {
@@ -82,8 +84,9 @@ export default class HagisModule {
         fileDrop.init()
         resume.init()
         dock.init()
+        updates.init()
         // 진단용 (개발자 도구 콘솔에서 hagisDebug.app.tabs 등으로 확인)
-        Object.defineProperty(window, 'hagisDebug', { value: { app, resume, chrome, workspace, stage, dock }, configurable: true })
+        Object.defineProperty(window, 'hagisDebug', { value: { app, resume, chrome, workspace, stage, dock, updates }, configurable: true })
         console.log('[hagis] hagis by tabby — made by JakeandToff (instagram @toomuchthought.kr) loaded')
     }
 }

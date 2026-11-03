@@ -44,6 +44,8 @@ if (process.platform === 'win32') {
 } else {
     execFileSync('zip', ['-r', '-q', zip, name], { cwd: releaseDir, stdio: 'inherit' })
 }
+// 버전이 없는 고정 이름 사본 — install.cmd 가 releases/latest/download/hagis.zip 으로 항상 최신판을 받는다
+fs.copyFileSync(zip, path.join(releaseDir, 'hagis.zip'))
 const hash = crypto.createHash('sha256').update(fs.readFileSync(zip)).digest('hex')
 fs.writeFileSync(`${zip}.sha256`, `${hash}  ${path.basename(zip)}
 `)

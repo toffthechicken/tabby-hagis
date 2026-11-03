@@ -35,6 +35,8 @@ jobs:
           files: |
             release/hagis-*.zip
             release/hagis-*.zip.sha256
+            release/hagis.zip
+            install.cmd
 
   npm:
     needs: release

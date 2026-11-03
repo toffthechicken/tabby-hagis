@@ -15,6 +15,7 @@ import { HagisMarkdownTabComponent } from './components/markdownTab.component'
 import { HagisWorkspaceService } from './services/workspace.service'
 import { HagisDockService } from './services/dock.service'
 import { HagisCaptureService } from './services/capture.service'
+import { HagisUpdateService } from './services/update.service'
 
 /** 툴바 버튼 + 명령 팔레트 (Ctrl+Shift+P) 항목 */
 @Injectable()
@@ -24,6 +25,7 @@ export class HagisCommandProvider extends CommandProvider {
         private workspaces: HagisWorkspaceService,
         private dock: HagisDockService,
         private capture: HagisCaptureService,
+        private updates: HagisUpdateService,
     ) {
         super()
     }
@@ -97,6 +99,14 @@ export class HagisCommandProvider extends CommandProvider {
                 run: async () => this.actions.openSettings(),
             },
             ...this.captureCommands(),
+            {
+                id: 'hagis:update',
+                label: this.updates.pendingVersion ? `hagis: v${this.updates.pendingVersion} 설치됨 — Tabby 재시작하면 적용` : 'hagis: 업데이트 확인',
+                run: async () => {
+                    await this.updates.checkNow()
+                    await this.updates.installLatest()
+                },
+            },
             {
                 id: 'hagis:dock',
                 label: `hagis: 독 ${this.dock.enabled ? '숨기기' : '보이기'}`,

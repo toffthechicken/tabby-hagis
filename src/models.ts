@@ -2,6 +2,10 @@
 export const HAGIS_AUTHOR = 'JakeandToff'
 export const HAGIS_INSTAGRAM = 'toomuchthought.kr'
 export const HAGIS_INSTAGRAM_URL = 'https://www.instagram.com/toomuchthought.kr/'
+/** 업데이트를 확인할 GitHub 저장소 */
+export const HAGIS_REPO = 'toffthechicken/tabby-hagis'
+/** HAGIS = Hub for All Gear, In Sight */
+export const HAGIS_TAGLINE = 'Hub for All Gear, In Sight'
 
 /**
  * hagis 레이아웃 모델

@@ -3,6 +3,7 @@ import { ConfigService, NotificationsService, PlatformService } from 'tabby-core
 import { HagisTrustedCertificate } from '../config'
 import { HAGIS_AUTHOR, HAGIS_INSTAGRAM, HAGIS_INSTAGRAM_URL, HagisWorkspace, ZOOM_PRESETS, countPanes, zoomPercent } from '../models'
 import { HagisWebService } from '../services/web.service'
+import { HagisUpdateService } from '../services/update.service'
 import { HagisWorkspaceService } from '../services/workspace.service'
 
 /** 설정 → hagis */
@@ -10,11 +11,32 @@ import { HagisWorkspaceService } from '../services/workspace.service'
     template: `
 <div class="hagis-settings">
     <h3>hagis <small class="text-muted">by tabby</small></h3>
-    <p class="text-muted">네트워크 엔지니어용 통합 워크스페이스 — 고객사별 레이아웃, 패널별 글자 크기, 웹 GUI 패널</p>
+    <p class="text-muted"><b style="color:#c6ff00">H</b>ub for <b style="color:#c6ff00">A</b>ll <b style="color:#c6ff00">G</b>ear, <b style="color:#c6ff00">I</b>n <b style="color:#c6ff00">S</b>ight — 네트워크 엔지니어용 통합 워크스페이스</p>
     <div class="hagis-credit">
         <span>made by <b>{{ author }}</b></span>
         <span class="hagis-credit-dot">·</span>
         <a href="#" (click)="openInstagram($event)"><i class="fab fa-instagram"></i> &#64;{{ instagram }}</a>
+    </div>
+
+    <h4>업데이트</h4>
+    <div class="form-line">
+        <div class="header">
+            <div class="title">현재 버전 v{{ updates.current }}</div>
+            <div class="description">{{ updates.status || '' }}</div>
+        </div>
+        <button class="btn btn-secondary" (click)="updates.checkNow()" [disabled]="updates.busy">지금 확인</button>
+        <button class="btn btn-primary ms-2" *ngIf="updates.latest" (click)="updates.installLatest()" [disabled]="updates.busy">v{{ updates.latest.version }} 로 업데이트</button>
+    </div>
+    <div class="form-line">
+        <div class="header">
+            <div class="title">자동 확인</div>
+            <div class="description">GitHub 에 새 릴리스가 있는지 하루 한 번 확인합니다. 보내는 정보는 없고 GitHub 에는 IP 주소만 보입니다. 설치는 SHA-256 을 확인한 뒤 플러그인 파일만 바꾸며, 적용은 Tabby 를 다시 시작할 때입니다.</div>
+        </div>
+        <select class="form-control" style="width: 240px" [(ngModel)]="config.store.hagis.update.mode" (ngModelChange)="config.save()">
+            <option value="ask">새 버전이 있으면 물어보기 (기본)</option>
+            <option value="auto">자동으로 설치 (재시작은 직접)</option>
+            <option value="off">확인하지 않음</option>
+        </select>
     </div>
 
     <h4>화면</h4>
@@ -218,6 +240,7 @@ export class HagisSettingsTabComponent {
         public config: ConfigService,
         public workspaces: HagisWorkspaceService,
         public web: HagisWebService,
+        public updates: HagisUpdateService,
         private platform: PlatformService,
         private notifications: NotificationsService,
     ) { }

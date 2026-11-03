@@ -5,6 +5,9 @@
 **네트워크 엔지니어를 위한 [Tabby](https://github.com/Eugeny/tabby) 통합 워크스페이스 플러그인**<br>
 <sub>An all-in-one workspace plugin for [Tabby](https://github.com/Eugeny/tabby), built for network engineers</sub>
 
+**H**ub for **A**ll **G**ear, **I**n **S**ight — *장비 전부를 한눈에*<br>
+<sub>HAGIS = **H**ub for **A**ll **G**ear, **I**n **S**ight</sub>
+
 [![License: MIT](https://img.shields.io/badge/license-MIT-c6ff00.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/toffthechicken/tabby-hagis?color=c6ff00)](https://github.com/toffthechicken/tabby-hagis/releases/latest)
 ![Tabby](https://img.shields.io/badge/Tabby-1.0.238%2B-00f0ff)
@@ -75,9 +78,30 @@ save a layout per customer and reopen it in one click, put device web GUIs next 
   > ⚠️ winget 에는 이름이 같은 `TabbyML.Tabby` 도 있지만 **다른 프로그램**(AI 코드 자동완성)입니다. 반드시 `Eugeny.Tabby` 를 설치하세요.<br>
   > <sub>`TabbyML.Tabby` is a different product (AI code completion). Make sure you install `Eugeny.Tabby`.</sub>
 
-### A. 릴리스 zip + 설치 프로그램 (권장) · Release zip + installer (recommended)
+### A. 한 줄 설치 — 깡통 PC 에서도 · One-line install — works on a bare PC
 
-Node.js 가 필요 없습니다. <sub>No Node.js required.</sub>
+Node.js·git 이 **필요 없습니다.** Windows 10 (1803 이상) / 11 에 기본으로 들어 있는 `curl` 과 `tar` 만 씁니다. 명령 프롬프트(cmd)에 붙여 넣으세요:<br>
+<sub>No Node.js or git needed — it only uses `curl` and `tar`, which ship with Windows 10 (1803+) / 11. Paste into Command Prompt (cmd):</sub>
+
+```bat
+curl.exe -L -o "%TEMP%\hagis-install.cmd" https://github.com/toffthechicken/tabby-hagis/releases/latest/download/install.cmd && "%TEMP%\hagis-install.cmd"
+```
+
+PowerShell 에서는: <sub>In PowerShell:</sub>
+
+```powershell
+curl.exe -L -o "$env:TEMP\hagis-install.cmd" https://github.com/toffthechicken/tabby-hagis/releases/latest/download/install.cmd; & "$env:TEMP\hagis-install.cmd"
+```
+
+설치 프로그램이 Tabby 가 있는지 확인하고(없으면 `winget` 설치를 권함), 최신 릴리스를 내려받아 플러그인 폴더에 복사합니다. 끝나면 **Tabby 를 완전히 종료했다가 다시 켜세요.**<br>
+<sub>The installer checks for Tabby (offering `winget` if missing), downloads the latest release and copies it into the plugins folder. Then **fully quit and restart Tabby.**</sub>
+
+> GitHub 의 **Code → Download ZIP** 은 *소스*입니다. 거기서도 `install.cmd` 를 실행하면 Node.js 가 없을 때 위와 같이 빌드된 릴리스를 대신 내려받고, 릴리스도 없으면 `winget` 으로 Node.js 설치를 권합니다.<br>
+> <sub>**Code → Download ZIP** gives you the *source*. Running its `install.cmd` still works: without Node.js it fetches the prebuilt release instead, and if there is none it offers to install Node.js with `winget`.</sub>
+
+### B. 릴리스 zip + 설치 프로그램 · Release zip + installer
+
+직접 받아서 설치하고 싶을 때. Node.js 가 필요 없습니다. <sub>If you prefer to download it yourself. No Node.js required.</sub>
 
 1. [Releases](https://github.com/toffthechicken/tabby-hagis/releases/latest) 에서 `hagis-<버전>.zip` 을 받습니다. <sub>Download `hagis-<version>.zip`.</sub>
 2. (선택) 무결성 확인 — 같이 올라온 `.sha256` 파일과 비교합니다. <sub>(Optional) verify against the `.sha256` file:</sub>
@@ -92,12 +116,12 @@ Node.js 가 필요 없습니다. <sub>No Node.js required.</sub>
 `%APPDATA%\tabby\plugins\node_modules\tabby-hagis` 에 파일을 복사합니다. Tabby 가 없을 때 묻는 질문에 **Y** 를 고른 경우에만 `winget` 으로 Tabby 를 설치하고, 그 외에는 아무것도 바꾸지 않습니다.<br>
 <sub>The installer is an unsigned, plain-text batch file — if Windows warns you, choose "More info → Run anyway". You can read it first. It copies files into `%APPDATA%\tabby\plugins\node_modules\tabby-hagis`; only if Tabby is missing and you answer **Y** does it run `winget` to install Tabby. Nothing else is changed.</sub>
 
-### B. Tabby 플러그인 관리자 · Tabby plugin manager
+### C. Tabby 플러그인 관리자 · Tabby plugin manager
 
 npm 에 게시된 경우: **설정 → 플러그인** 에서 `hagis` 를 검색해 설치하고 Tabby 를 재시작합니다. (업데이트도 여기서 됩니다.)<br>
 <sub>If published on npm: **Settings → Plugins**, search for `hagis`, install, restart Tabby. Updates arrive the same way.</sub>
 
-### C. 소스에서 · From source
+### D. 소스에서 · From source
 
 ```bash
 git clone https://github.com/toffthechicken/tabby-hagis.git
@@ -123,7 +147,9 @@ macOS·Linux 는 아직 테스트하지 못했습니다. <sub>Copy `package.json
 
 - **제거:** `uninstall.cmd` 더블클릭. 워크스페이스·설정은 Tabby 설정 파일에 남아 있어 다시 설치하면 그대로 복원됩니다.<br>
   <sub>Uninstall: double-click `uninstall.cmd`. Your workspaces and settings stay in Tabby's config and come back if you reinstall.</sub>
-- **업데이트:** 새 zip 으로 `install.cmd` 를 다시 실행하면 덮어씁니다. <sub>Update: run `install.cmd` from the newer zip; it overwrites the old files.</sub>
+- **업데이트(자동):** hagis 가 GitHub 의 새 릴리스를 하루 한 번 확인해서, 있으면 물어봅니다 → **지금 업데이트** 를 누르면 SHA-256 을 확인한 뒤 플러그인 파일만 바꾸고, Tabby 를 다시 시작하면 적용됩니다. **설정 → hagis → 업데이트** 에서 "지금 확인", "물어보기 / 자동 설치 / 확인하지 않음"을 고를 수 있고, 명령 팔레트에도 `hagis: 업데이트 확인` 이 있습니다.<br>
+  <sub>Update (automatic): hagis checks GitHub for a new release once a day and asks; **Update now** verifies SHA-256, replaces only the plugin files, and takes effect after restarting Tabby. Under **Settings → hagis → Updates** you can check now or choose ask / auto-install / off; the command palette has `hagis: Check for updates`.</sub>
+- **업데이트(수동):** 한 줄 설치 명령이나 새 zip 의 `install.cmd` 를 다시 실행하면 덮어씁니다. <sub>Update (manual): re-run the one-line command or the newer zip's `install.cmd`; it overwrites the old files.</sub>
 
 ---
 
@@ -178,7 +204,7 @@ macOS·Linux 는 아직 테스트하지 못했습니다. <sub>Copy `package.json
 
 ## 보안과 개인정보 · Security & privacy
 
-- **원격 수집·텔레메트리 없음.** hagis 가 직접 보내는 네트워크 요청은 없습니다 (웹 패널에서 여는 주소만 접속). <sub>No telemetry; hagis makes no network requests of its own — only the pages you open in web panes.</sub>
+- **원격 수집·텔레메트리 없음.** hagis 가 직접 보내는 요청은 **업데이트 확인 하나뿐**입니다 — GitHub 릴리스 API 를 하루 한 번 읽으며(보내는 정보 없음, GitHub 에는 IP 주소만 보임), 설정 → hagis → 업데이트 에서 끌 수 있습니다. 그 밖에는 웹 패널에서 직접 여는 주소만 접속합니다. 업데이트는 HTTPS·GitHub 도메인만 허용하고 SHA-256 을 확인한 뒤 플러그인 파일만 바꿉니다. <sub>No telemetry. The only request hagis makes on its own is the update check — it reads the GitHub releases API once a day (sends no data; GitHub only sees your IP) and can be turned off in Settings → hagis → Updates. Otherwise it only connects to pages you open in web panes. Updates are limited to HTTPS + GitHub hosts, verified with SHA-256, and only replace the plugin files.</sub>
 - 웹 패널은 Tabby 와 분리된 세션(`persist:hagis-web`)에서 `sandbox`·`contextIsolation`·Node.js 권한 없이 실행되고, 카메라·마이크·위치 권한 요청은 거부합니다. <sub>Web panes run in a separate session with sandbox + context isolation and no Node.js; camera/mic/location requests are denied.</sub>
 - **인증서 검증을 전역으로 끄지 않습니다.** 자체 서명 인증서는 호스트별 SHA-256 지문을 확인하고 직접 신뢰한 경우에만 허용하며, 설정에서 철회할 수 있습니다. 모르는 인증서는 바로 거부하지 않고 결정을 기다립니다 (Chromium 이 거부 결과를 캐시하는 문제 방지). <sub>Certificate checks are never disabled globally. Self-signed certificates are trusted per host + SHA-256 fingerprint only after you confirm, and can be revoked in settings.</sub>
 - Markdown 은 Node.js 권한이 있는 Tabby 렌더러에 그려지므로 DOMPurify 로 `<script>`·이벤트 속성을 제거합니다. <sub>Markdown is sanitized with DOMPurify because it renders in Tabby's privileged renderer.</sub>
@@ -239,6 +265,7 @@ src/
 │  ├─ dock.service.ts           dock (launcher bar), auto-hide
 │  ├─ capture.service.ts        copy terminal text, pane screenshots
 │  ├─ web.service.ts            web session, certificate trust, popup handling
+│  ├─ update.service.ts         update check + verified self-update from GitHub releases
 │  ├─ resume.service.ts         session resume
 │  ├─ fileDrop.service.ts       drag & drop (safe path quoting)
 │  └─ styles.service.ts         global CSS, color-scheme variables

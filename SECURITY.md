@@ -19,6 +19,6 @@ Tabby 자체의 취약점은 [Eugeny/tabby](https://github.com/Eugeny/tabby/secu
 
 ## Design notes / 설계 메모
 
-- No telemetry; hagis makes no network requests of its own. / 원격 수집 없음, hagis 가 직접 보내는 네트워크 요청 없음.
+- No telemetry. The only request hagis makes on its own is the update check (GitHub releases API, once a day, sends no data; can be turned off). Updates are verified with SHA-256 and limited to GitHub hosts. / 원격 수집 없음. hagis 가 직접 보내는 요청은 업데이트 확인(GitHub 릴리스 API, 하루 한 번, 보내는 정보 없음, 끌 수 있음)뿐이며, 업데이트는 SHA-256 으로 검증하고 GitHub 도메인으로 제한합니다.
 - Certificate checks are never disabled globally; self-signed certificates are trusted per host + SHA-256 fingerprint, only after the user confirms. / 인증서 검증을 전역으로 끄지 않고, 호스트 + 지문 단위로 사용자가 확인한 경우에만 신뢰합니다.
 - Release zips ship with a `.sha256` file. / 릴리스 zip 에는 `.sha256` 파일이 함께 올라갑니다.
