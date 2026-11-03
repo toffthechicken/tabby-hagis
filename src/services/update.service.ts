@@ -203,7 +203,8 @@ export class HagisUpdateService {
                 this.config.store.hagis.update.lastCheck = Date.now()
                 await this.config.save()
             }
-            if (compareVersions(version, this.current) <= 0) {
+            // 이미 내려받아 설치해 둔 버전(재시작 전)도 "새 버전"으로 다시 알리지 않는다
+            if (compareVersions(version, this.pendingVersion || this.current) <= 0) {
                 this.latest = null
                 return null
             }
