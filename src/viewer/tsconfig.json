@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "baseUrl": ".",
+    "types": [],
+    "lib": ["DOM", "ES2021"],
+    "emitDecoratorMetadata": false,
+    "experimentalDecorators": false
+  },
+  "include": ["."],
+  "exclude": []
+}

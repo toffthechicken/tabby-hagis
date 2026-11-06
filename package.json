@@ -1,6 +1,6 @@
 {
   "name": "tabby-hagis",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "HAGIS (Hub for All Gear, In Sight) — Tabby workspace plugin for network engineers: customer layouts, main stage + previews, web GUI panes, dock, resume / 네트워크 엔지니어용 통합 워크스페이스",
   "keywords": [
     "tabby-plugin",
@@ -33,9 +33,9 @@
     "THIRD_PARTY_NOTICES.md"
   ],
   "scripts": {
-    "build": "webpack --mode production",
+    "build": "webpack --mode production && node scripts/copy-viewer.js",
     "watch": "webpack --mode development --watch",
-    "typecheck": "tsc --noEmit -p .",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p src/viewer",
     "install-plugin": "node scripts/install.js",
     "deploy": "npm run build && npm run install-plugin",
     "package": "npm run build && node scripts/package.js",
@@ -48,11 +48,14 @@
     "@angular/platform-browser": "^15.2.10",
     "@electron/remote": "^2.1.3",
     "@ng-bootstrap/ng-bootstrap": "^14.2.0",
+    "@rhwp/core": "0.8.7",
     "@types/dompurify": "^3.0.5",
     "@types/node": "^22.20.5",
+    "docx-preview": "0.4.1",
     "dompurify": "^3.4.17",
     "electron": "^38.8.6",
     "marked": "^12.0.2",
+    "pptx-preview": "1.0.7",
     "rxjs": "^7.8.2",
     "tabby-core": "^1.0.231-nightly.0",
     "tabby-settings": "^1.0.231-nightly.0",
@@ -60,6 +63,7 @@
     "ts-loader": "^9.6.2",
     "typescript": "4.9",
     "webpack": "^5.112.2",
-    "webpack-cli": "^5.1.4"
+    "webpack-cli": "^5.1.4",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }
 }

@@ -7,6 +7,7 @@ import { TEXT_FILE_EXTENSIONS, isTextFile } from '../models'
 import { getDroppedFilePath } from '../utils'
 import { HagisPaneService } from './pane.service'
 import { HagisDockService } from './dock.service'
+import { HagisViewerService } from './viewer.service'
 
 type DropTarget =
     | { kind: 'dock', element: HTMLElement }
@@ -35,6 +36,7 @@ export class HagisFileDropService {
         private platform: PlatformService,
         private zone: NgZone,
         private dock: HagisDockService,
+        private viewer: HagisViewerService,
     ) { }
 
     init (): void {
@@ -148,7 +150,7 @@ export class HagisFileDropService {
                 }
             }
             const newTabs = [
-                ...files.map(f => this.tabForFile(f)),
+                ...(await Promise.all(files.map(f => this.tabForFile(f)))),
                 ...urls.map(u => this.tabs.create({ type: HagisWebTabComponent, inputs: { url: u } })),
             ].filter((t): t is BaseTabComponent => !!t)
             if (!newTabs.length) {
@@ -208,13 +210,22 @@ export class HagisFileDropService {
         return (['replace', 'paste', 'cancel'] as const)[result.response] ?? 'cancel'
     }
 
-    private tabForFile (filePath: string): BaseTabComponent|null {
+    private async tabForFile (filePath: string): Promise<BaseTabComponent|null> {
         if (isTextFile(filePath)) {
             return this.tabs.create({ type: HagisMarkdownTabComponent, inputs: { path: filePath } })
         }
+        if (this.viewer.canView(filePath)) {
+            // HWP·Word·Excel·PowerPoint·PDF 등은 문서 뷰어(웹 패널)로 연다
+            try {
+                return this.tabs.create({ type: HagisWebTabComponent, inputs: { url: await this.viewer.prepare(filePath) } })
+            } catch (e: any) {
+                this.notifications.error(`hagis: 문서를 열지 못했습니다 — ${filePath}`, String(e?.message ?? e))
+                return null
+            }
+        }
         this.notifications.error(
             `hagis: 열 수 없는 파일 형식입니다 — ${filePath}`,
-            `지원 형식: ${TEXT_FILE_EXTENSIONS.join(', ')}`,
+            `지원 형식: ${[...TEXT_FILE_EXTENSIONS, ...this.viewer.extensions.map(x => '.' + x)].join(', ')}`,
         )
         return null
     }

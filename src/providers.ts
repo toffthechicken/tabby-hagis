@@ -89,6 +89,11 @@ export class HagisCommandProvider extends CommandProvider {
                 run: () => this.actions.addEmptyPane('r'),
             },
             {
+                id: 'hagis:open-document',
+                label: 'hagis: 문서 열기 — HWP·Word·Excel·PowerPoint·PDF (오른쪽)',
+                run: () => this.actions.openDocument('r'),
+            },
+            {
                 id: 'hagis:add-markdown',
                 label: 'hagis: Markdown 파일 열기 (오른쪽)',
                 run: () => this.actions.addMarkdownPane('r'),

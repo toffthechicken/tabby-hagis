@@ -16,14 +16,16 @@ const GLOBAL_CSS = `
     pointer-events: none;
     user-select: none;
 }
-.hagis-tag-slot { flex: none; display: inline-flex; min-width: 0; max-width: 45%; }
+/* 태그 자리 안의 내용이 자리보다 넓으면 옆 버튼(뒤로·앞으로 등) 위로 넘쳐 클릭을 가로채므로, 태그 이름을 줄이고 넘치는 부분은 자른다 */
+.hagis-tag-slot { flex: none; display: inline-flex; min-width: 0; max-width: 45%; overflow: hidden; }
 .hagis-tag-slot:empty { display: none; }
 .hagis-pane-head.hagis-pane-head-inline {
     position: static;
+    min-width: 0;
     max-width: 100%;
     margin-right: 2px;
 }
-.hagis-pane-head-inline .hagis-tag { flex: none; max-width: 100%; }
+.hagis-pane-head-inline .hagis-tag { flex: 0 1 auto; min-width: 18px; max-width: 100%; }
 .hagis-tag {
     display: none;
     flex: 0 1 auto;
@@ -75,6 +77,9 @@ const GLOBAL_CSS = `
 /* 화면 캡처 중에는 마우스를 올렸을 때만 나오는 버튼을 숨긴다 */
 body.hagis-capturing .hagis-zoom, body.hagis-capturing .hagis-pane-menu, body.hagis-capturing .hagis-stage-add { display: none !important; }
 
+/* 최대화한 웹 패널은 Tabby 기본(가장자리 5% 띄움·90% 크기)이 아니라 분할 화면 전체를 쓴다 — 사이트가 데스크톱 레이아웃으로 나오도록 */
+split-tab > hagis-web-tab.child.maximized { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; border-radius: 0; box-shadow: none; }
+
 /* 태그가 터미널 첫 줄을 가리지 않도록 자리 확보 */
 .hagis-tagged > .content { margin-top: 20px !important; }
 /* hagis 태그와 겹치는 Tabby 기본 패널 이름 표시는 숨김 */
@@ -113,7 +118,8 @@ body.hagis-tags-on split-tab-pane-label .custom-name { display: none !important;
 .hagis-zoom.hz-min .hz-max { display: none; }
 
 /* 좁은 패널에서 웹·Markdown 도구 막대가 넘치지 않게, 태그가 있으면 파일명은 숨김 */
-.hagis-web-bar, .hagis-md-bar { overflow: hidden; }
+/* (웹 도구 막대는 자동완성·다운로드 목록이 아래로 펼쳐져야 해서 overflow 를 막지 않는다 — 넘친 부분은 패널 자체가 자른다) */
+.hagis-md-bar { overflow: hidden; }
 .hagis-tagged .hagis-md-file { visibility: hidden; }
 
 /* ===== hagis: 모서리 크기 조절 핸들 ===== */

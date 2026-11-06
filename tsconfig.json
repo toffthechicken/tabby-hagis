@@ -19,5 +19,6 @@
     "types": ["node"],
     "lib": ["DOM", "ES2021"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/viewer"]
 }

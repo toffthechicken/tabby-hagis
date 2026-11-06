@@ -1,0 +1,27 @@
+:root { color-scheme: dark; }
+html, body { margin: 0; height: 100%; background: #1e1f22; color: #d8dadf; font: 13px/1.5 system-ui, 'Malgun Gothic', sans-serif; }
+#status { padding: 14px 18px; opacity: .8; }
+#status.error { color: #ff7b7b; opacity: 1; white-space: pre-wrap; }
+#status:empty { display: none; }
+#app { min-height: 100%; }
+iframe.full { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
+.hv-pages { padding: 12px 0 40px; }
+.hv-page { margin: 0 auto 14px; background: #fff; box-shadow: 0 2px 12px rgba(0, 0, 0, .55); overflow: hidden; color: #000; }
+.hv-page svg { display: block; width: 100%; height: auto; }
+.hv-docx { padding: 12px 0 40px; }
+.hv-docx .docx-wrapper { background: transparent !important; padding: 0 !important; }
+.hv-docx .docx-wrapper > section.docx { margin: 0 auto 14px !important; box-shadow: 0 2px 12px rgba(0, 0, 0, .55) !important; color: #000; }
+.hv-pptx { padding: 12px 12px 40px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.hv-pptx > div { color: #000; }
+.hv-text { margin: 0; padding: 14px 18px; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.55 Consolas, 'D2Coding', monospace; }
+.hv-image { display: block; max-width: 100%; margin: 12px auto; background: #fff; }
+.hv-tabs { position: sticky; top: 0; z-index: 3; display: flex; gap: 2px; padding: 6px 8px 0; background: #26282c; border-bottom: 1px solid #3a3d44; overflow-x: auto; }
+.hv-tab { padding: 4px 12px; border: 1px solid transparent; border-bottom: 0; border-radius: 5px 5px 0 0; background: transparent; color: inherit; cursor: pointer; white-space: nowrap; font: inherit; }
+.hv-tab:hover { background: #30333a; }
+.hv-tab.active { background: #1e1f22; border-color: #3a3d44; color: #c6ff00; }
+.hv-sheet { padding: 0 0 30px; overflow: auto; }
+.hv-sheet table { border-collapse: collapse; font: 12px/1.4 Consolas, 'Malgun Gothic', monospace; background: #fff; color: #000; }
+.hv-sheet th, .hv-sheet td { border: 1px solid #c9ccd2; padding: 2px 6px; white-space: pre; max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
+.hv-sheet th { position: sticky; top: 0; background: #eceef2; font-weight: 600; text-align: center; }
+.hv-sheet th.row { position: sticky; left: 0; top: auto; background: #eceef2; min-width: 34px; }
+.hv-note { padding: 8px 14px; opacity: .7; }

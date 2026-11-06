@@ -13,6 +13,8 @@ import {
     HagisMarkdownProfileProvider, HagisMarkdownProfileSettingsComponent,
     HagisWebProfileProvider, HagisWebProfileSettingsComponent,
 } from './profiles'
+import { HagisBrowserDataService } from './services/browserData.service'
+import { HagisDownloadService } from './services/download.service'
 import { HagisFileDropService } from './services/fileDrop.service'
 import { HagisPaneChromeService } from './services/paneChrome.service'
 import { HagisStylesService } from './services/styles.service'
@@ -20,6 +22,7 @@ import { HagisResumeService } from './services/resume.service'
 import { HagisStageService } from './services/stage.service'
 import { HagisDockService } from './services/dock.service'
 import { HagisUpdateService } from './services/update.service'
+import { HagisViewerService } from './services/viewer.service'
 import { HagisWorkspaceService } from './services/workspace.service'
 import { scrubInheritedSessionEnv } from './utils'
 
@@ -74,6 +77,9 @@ export default class HagisModule {
         stage: HagisStageService,
         dock: HagisDockService,
         updates: HagisUpdateService,
+        browserData: HagisBrowserDataService,
+        downloads: HagisDownloadService,
+        viewer: HagisViewerService,
     ) {
         const scrubbed = scrubInheritedSessionEnv()
         if (scrubbed.length) {
@@ -85,8 +91,9 @@ export default class HagisModule {
         resume.init()
         dock.init()
         updates.init()
+        browserData.init()
         // 진단용 (개발자 도구 콘솔에서 hagisDebug.app.tabs 등으로 확인)
-        Object.defineProperty(window, 'hagisDebug', { value: { app, resume, chrome, workspace, stage, dock, updates }, configurable: true })
+        Object.defineProperty(window, 'hagisDebug', { value: { app, resume, chrome, workspace, stage, dock, updates, browserData, downloads, viewer }, configurable: true })
         console.log('[hagis] hagis by tabby — made by JakeandToff (instagram @toomuchthought.kr) loaded')
     }
 }

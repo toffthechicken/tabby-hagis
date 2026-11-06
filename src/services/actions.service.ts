@@ -5,6 +5,8 @@ import { SettingsTabComponent } from 'tabby-settings'
 import { HagisLauncherModalComponent, HagisLauncherResult } from '../components/launcherModal.component'
 import { HagisSaveWorkspaceModalComponent, HagisSaveWorkspaceResult } from '../components/saveWorkspaceModal.component'
 import { zoomPercent } from '../models'
+import { pickFile } from '../utils'
+import { HagisViewerService } from './viewer.service'
 import { HagisWorkspaceService } from './workspace.service'
 
 /** 툴바·명령 팔레트·우클릭 메뉴에서 공통으로 쓰는 hagis 동작 */
@@ -15,6 +17,7 @@ export class HagisActionsService {
         private modal: NgbModal,
         private notifications: NotificationsService,
         private workspaces: HagisWorkspaceService,
+        private viewer: HagisViewerService,
     ) { }
 
     async openLauncher (): Promise<void> {
@@ -97,6 +100,22 @@ export class HagisActionsService {
 
     async addEmptyPane (side: SplitDirection = 'r'): Promise<void> {
         await this.workspaces.addPaneToActive(this.workspaces.createPlaceholder(), side)
+    }
+
+    /** 문서(HWP·Word·Excel·PowerPoint·PDF 등)를 골라 뷰어 패널로 연다 */
+    async openDocument (side: SplitDirection = 'r', filePath?: string): Promise<void> {
+        const file = filePath ?? await pickFile('문서 열기', [
+            { name: '문서 (HWP·Word·Excel·PowerPoint·PDF·텍스트·그림)', extensions: this.viewer.extensions },
+            { name: '모든 파일', extensions: ['*'] },
+        ])
+        if (!file) {
+            return
+        }
+        try {
+            await this.addWebPane(side, await this.viewer.prepare(file))
+        } catch (e: any) {
+            this.notifications.error('hagis: 문서를 열지 못했습니다', String(e?.message ?? e))
+        }
     }
 
     async addMarkdownPane (side: SplitDirection = 'r'): Promise<void> {

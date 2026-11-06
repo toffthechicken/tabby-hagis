@@ -1,8 +1,9 @@
 import { Component } from '@angular/core'
 import { ConfigService, NotificationsService, PlatformService } from 'tabby-core'
-import { HagisTrustedCertificate } from '../config'
+import { HagisSitePermission, HagisTrustedCertificate } from '../config'
 import { HAGIS_AUTHOR, HAGIS_INSTAGRAM, HAGIS_INSTAGRAM_URL, HagisWorkspace, ZOOM_PRESETS, countPanes, zoomPercent } from '../models'
-import { HagisWebService } from '../services/web.service'
+import { HagisBrowserDataService, HagisBrowserSource } from '../services/browserData.service'
+import { HAGIS_PERMISSION_LABELS, HagisWebService } from '../services/web.service'
 import { HagisUpdateService } from '../services/update.service'
 import { HagisWorkspaceService } from '../services/workspace.service'
 
@@ -239,6 +240,26 @@ import { HagisWorkspaceService } from '../services/workspace.service'
             <option value="pane">옆에 새 패널로만 열기</option>
         </select>
     </div>
+    <div class="form-line">
+        <div class="header">
+            <div class="title">주소창에 검색어 입력</div>
+            <div class="description">주소가 아닌 글(예: 방화벽 개요)을 입력하면 이 검색 엔진으로 검색합니다. IP 주소·도메인(naver.com)·localhost·호스트:포트(fw01:8443)는 그대로 주소로 열립니다. 점이 없는 한 단어(예: fw01)는 검색어로 보므로 장비 이름은 주소(fw01/)나 IP로 입력하세요.</div>
+        </div>
+        <select class="form-control" style="width: 260px" [(ngModel)]="config.store.hagis.web.searchEngine" (ngModelChange)="config.save()">
+            <option value="google">Google (기본)</option>
+            <option value="naver">네이버</option>
+            <option value="bing">Bing</option>
+            <option value="duckduckgo">DuckDuckGo</option>
+            <option value="off">검색하지 않음 (항상 주소로 열기)</option>
+        </select>
+    </div>
+    <div class="form-line">
+        <div class="header">
+            <div class="title">웹 화면 브라우저 단축키</div>
+            <div class="description">웹 화면을 클릭한 상태에서 Ctrl+F(찾기), Ctrl+P(인쇄), F5·Ctrl+R(새로고침), Alt+←/→(뒤로·앞으로), Ctrl+L(주소창), Ctrl+±/0(확대), F12(개발자 도구)를 씁니다. Ctrl+F·Ctrl+P 같은 키를 자체 기능으로 쓰는 웹 앱(문서 편집기 등)에서 충돌하면 끄세요. 우클릭 메뉴는 항상 사용할 수 있습니다.</div>
+        </div>
+        <toggle [(ngModel)]="config.store.hagis.web.shortcuts" (ngModelChange)="config.save(); web.syncKeyFlag()"></toggle>
+    </div>
     <p class="text-muted small">
         웹 패널은 Tabby와 분리된 세션(persist:hagis-web)에서 Node.js 권한 없이 실행됩니다.
         인증서 검증은 끄지 않으며, 자체 서명 인증서는 아래 목록에 있는 호스트·지문만 허용합니다.
@@ -254,7 +275,126 @@ import { HagisWorkspaceService } from '../services/workspace.service'
         </div>
         <div class="list-group-item text-muted small" *ngIf="!web.trustedCertificates.length">신뢰한 인증서가 없습니다</div>
     </div>
+    <p class="text-muted small mt-3">
+        웹 사이트가 마이크·카메라·위치·알림을 쓰려 하면 패널에 허용 여부를 묻습니다. "허용"/"차단"을 고르면 이 사이트에 대해 기억하며, 아래에서 지우면 다음에 다시 묻습니다.
+        화면 공유는 매번 공유할 화면을 직접 고릅니다.
+    </p>
+    <div class="list-group mb-2">
+        <div class="list-group-item d-flex align-items-center gap-2" *ngFor="let p of web.sitePermissions">
+            <div class="flex-grow-1">
+                <span class="fw-bold">{{ p.origin }}</span>
+                <span class="small"> — {{ permissionLabel(p.permission) }}: </span>
+                <span class="small" [class.text-success]="p.allow" [class.text-danger]="!p.allow">{{ p.allow ? '허용' : '차단' }}</span>
+            </div>
+            <button class="btn btn-sm btn-danger" (click)="forgetPermission(p)" title="기억 지우기 (다음에 다시 묻습니다)"><i class="fas fa-trash"></i></button>
+        </div>
+        <div class="list-group-item text-muted small" *ngIf="!web.sitePermissions.length">기억해 둔 사이트 권한이 없습니다</div>
+    </div>
     <button class="btn btn-secondary" (click)="clearWebData()"><i class="fas fa-broom"></i> 웹 패널 쿠키·캐시 삭제</button>
+
+    <h4 class="mt-4">다운로드 · 문서 뷰어</h4>
+    <p class="text-muted small">
+        웹 패널에서 받은 파일은 패널 우측 상단의 둥근 다운로드 버튼에 진행률이 표시되고, 눌러서 열기·폴더 보기·취소를 할 수 있습니다.
+        HWP·HWPX·Word(docx)·Excel(xlsx·xls·csv)·PowerPoint(pptx)·PDF·텍스트·그림은 <b>hagis 문서 뷰어</b>로 패널 안에서 바로 볼 수 있습니다
+        (다운로드 목록의 문서 아이콘 · 파일을 탭 바/패널에 끌어다 놓기 · 명령 팔레트 "hagis: 문서 열기"). 구형 .doc·.ppt 와 암호가 걸린 문서는 열 수 없고, 실행 파일(.exe 등)은 앱에서 열지 않고 폴더에서 보기만 제공합니다.
+    </p>
+    <div class="form-line">
+        <div class="header">
+            <div class="title">받을 때마다 저장 위치 묻기</div>
+            <div class="description">끄면 아래 폴더에 바로 저장합니다 (같은 이름이 있으면 "이름 (1)" 로 저장해 기존 파일을 덮어쓰지 않습니다).</div>
+        </div>
+        <toggle [(ngModel)]="config.store.hagis.download.askWhere" (ngModelChange)="config.save()"></toggle>
+    </div>
+    <div class="form-line" *ngIf="!config.store.hagis.download.askWhere">
+        <div class="header">
+            <div class="title">저장 폴더</div>
+            <div class="description">비워 두면 Windows 의 "다운로드" 폴더입니다.</div>
+        </div>
+        <input class="form-control" style="width: 340px" [(ngModel)]="config.store.hagis.download.folder" (blur)="config.save()" placeholder="예: D:\\Downloads" spellcheck="false">
+    </div>
+
+    <h4 class="mt-4">브라우저 연동 <small class="text-muted">주소창 자동완성 · Chrome/Edge 가져오기</small></h4>
+    <p class="text-muted small">
+        주소창에 입력하면 즐겨찾기와 방문 기록에서 후보를 보여 줍니다. Chrome·Edge·웨일·Brave 의 즐겨찾기와 방문 기록을 가져와 함께 쓸 수 있습니다.
+        브라우저의 파일은 읽기만 하고(복사본을 읽음) 바꾸지 않으며, 가져온 내용은 이 PC의 hagis 설정 폴더(hagis-browser.json)에만 저장됩니다.
+        <b>쿠키·비밀번호는 가져오지 않습니다</b> — Chrome/Edge(127 이후)가 암호화 키를 브라우저 자신에게만 묶어 두어 다른 프로그램은 읽을 수 없습니다.
+        로그인은 웹 패널에서 한 번 하면 hagis 안에 유지됩니다.
+    </p>
+    <div class="form-line">
+        <div class="header">
+            <div class="title">주소창 자동완성</div>
+            <div class="description">입력하는 동안 아래에 후보 목록을 띄웁니다 (↑↓ 선택 · Enter 이동 · Esc 닫기). 입력칸이 비어 있을 때 ↓ 를 누르면 자주 가는 곳이 나옵니다.</div>
+        </div>
+        <toggle [(ngModel)]="config.store.hagis.browser.suggest.enabled" (ngModelChange)="config.save()"></toggle>
+    </div>
+    <ng-container *ngIf="config.store.hagis.browser.suggest.enabled">
+        <div class="form-line">
+            <div class="header">
+                <div class="title">후보에 포함할 것 · 개수</div>
+            </div>
+            <label class="me-3"><input type="checkbox" [(ngModel)]="config.store.hagis.browser.suggest.bookmarks" (ngModelChange)="config.save()"> 즐겨찾기</label>
+            <label class="me-3"><input type="checkbox" [(ngModel)]="config.store.hagis.browser.suggest.history" (ngModelChange)="config.save()"> 방문 기록</label>
+            <select class="form-control" style="width: 90px" [(ngModel)]="config.store.hagis.browser.suggest.max" (ngModelChange)="config.save()">
+                <option [ngValue]="5">5개</option>
+                <option [ngValue]="8">8개</option>
+                <option [ngValue]="10">10개</option>
+                <option [ngValue]="12">12개</option>
+            </select>
+        </div>
+    </ng-container>
+    <div class="form-line">
+        <div class="header">
+            <div class="title">hagis 방문 기록 남기기</div>
+            <div class="description">웹 패널에서 연 주소를 자동완성용으로 기억합니다. 아이디·비밀번호·토큰·세션 값이 든 주소와 검색 결과 화면은 남기지 않습니다. 지금 {{ browserData.ownCount }}개.</div>
+        </div>
+        <toggle [(ngModel)]="config.store.hagis.browser.recordHistory" (ngModelChange)="config.save()"></toggle>
+        <button class="btn btn-secondary ms-3" (click)="clearOwnHistory()" [disabled]="!browserData.ownCount"><i class="fas fa-trash"></i> 지우기</button>
+    </div>
+
+    <div class="form-line">
+        <div class="header">
+            <div class="title">가져올 항목</div>
+            <div class="description">방문 기록은 가장 최근 것부터 아래 개수까지만 가져옵니다.</div>
+        </div>
+        <label class="me-3"><input type="checkbox" [(ngModel)]="config.store.hagis.browser.importBookmarks" (ngModelChange)="config.save()"> 즐겨찾기</label>
+        <label class="me-3"><input type="checkbox" [(ngModel)]="config.store.hagis.browser.importHistory" (ngModelChange)="config.save()"> 방문 기록</label>
+        <select class="form-control" style="width: 110px" [(ngModel)]="config.store.hagis.browser.importHistoryLimit" (ngModelChange)="config.save()">
+            <option [ngValue]="1000">1,000개</option>
+            <option [ngValue]="5000">5,000개</option>
+            <option [ngValue]="20000">20,000개</option>
+            <option [ngValue]="50000">50,000개</option>
+        </select>
+    </div>
+    <div class="form-line">
+        <div class="header">
+            <div class="title">시작할 때 자동으로 최신화</div>
+            <div class="description">이미 가져온 브라우저는 hagis 를 켠 뒤 잠시 있다가 다시 읽어 최신으로 맞춥니다. 브라우저가 켜져 있어 파일이 잠겨 있으면 건너뜁니다.</div>
+        </div>
+        <toggle [(ngModel)]="config.store.hagis.browser.autoSync" (ngModelChange)="config.save()"></toggle>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <b>이 PC에서 찾은 브라우저</b>
+        <button class="btn btn-sm btn-secondary" (click)="scanBrowsers()"><i class="fas fa-sync-alt"></i> 다시 찾기</button>
+    </div>
+    <div class="list-group mb-2">
+        <div class="list-group-item d-flex align-items-center gap-2" *ngFor="let src of browserData.sources">
+            <div class="flex-grow-1 hagis-source">
+                <div class="fw-bold">{{ src.browserLabel }} · {{ src.profileName }}</div>
+                <div class="small text-muted" *ngIf="src.userName">{{ src.userName }}</div>
+                <div class="small" *ngIf="browserData.importedStatus(src.key) as st">
+                    마지막 가져오기 {{ st.at | date:'yyyy-MM-dd HH:mm' }} · 즐겨찾기 {{ st.bookmarks }}개 · 방문 기록 {{ st.history }}개
+                </div>
+                <div class="small" *ngIf="browserData.messages[src.key] as msg" [class.text-danger]="msg.error" [class.text-success]="!msg.error">{{ msg.text }}</div>
+            </div>
+            <button class="btn btn-sm btn-primary" (click)="importFrom(src)" [disabled]="browserData.busy.has(src.key)">
+                <i class="fas" [class.fa-download]="!browserData.busy.has(src.key)" [class.fa-spinner]="browserData.busy.has(src.key)" [class.fa-spin]="browserData.busy.has(src.key)"></i>
+                {{ browserData.importedStatus(src.key) ? '다시 가져오기' : '가져오기' }}
+            </button>
+            <button class="btn btn-sm btn-danger" *ngIf="browserData.importedStatus(src.key)" (click)="removeImported(src)" title="가져온 내용 지우기"><i class="fas fa-trash"></i></button>
+        </div>
+        <div class="list-group-item text-muted small" *ngIf="!browserData.sources.length">Chrome·Edge·웨일·Brave 를 찾지 못했습니다</div>
+    </div>
 </div>
 `,
     styles: [`
@@ -268,6 +408,8 @@ import { HagisWorkspaceService } from '../services/workspace.service'
 .hagis-ws-fields { flex: auto; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .hagis-ws-actions { flex: none; display: flex; gap: 4px; }
 .hagis-cert code { word-break: break-all; }
+.hagis-source { min-width: 0; }
+.hagis-settings .form-line label, .hagis-settings .form-line .btn { white-space: nowrap; }
 .hagis-swatches { display: flex; gap: 6px; margin-top: 4px; }
 .hagis-swatch { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); cursor: pointer; }
 .hagis-swatch:hover { border-color: #fff; }
@@ -306,9 +448,47 @@ export class HagisSettingsTabComponent {
         public workspaces: HagisWorkspaceService,
         public web: HagisWebService,
         public updates: HagisUpdateService,
+        public browserData: HagisBrowserDataService,
         private platform: PlatformService,
         private notifications: NotificationsService,
-    ) { }
+    ) {
+        this.browserData.refreshSources()
+    }
+
+    scanBrowsers (): void {
+        const found = this.browserData.refreshSources()
+        this.notifications.notice(`hagis: 브라우저 프로필 ${found.length}개를 찾았습니다`)
+    }
+
+    importFrom (source: HagisBrowserSource): Promise<void> {
+        return this.browserData.importSource(source)
+    }
+
+    async removeImported (source: HagisBrowserSource): Promise<void> {
+        const result = await this.platform.showMessageBox({
+            type: 'warning',
+            message: `${source.browserLabel} · ${source.profileName} 에서 가져온 즐겨찾기·방문 기록을 hagis 에서 지울까요? (브라우저의 원본은 그대로입니다)`,
+            buttons: ['지우기', '취소'],
+            defaultId: 1,
+            cancelId: 1,
+        })
+        if (result.response === 0) {
+            this.browserData.removeImported(source.key)
+        }
+    }
+
+    async clearOwnHistory (): Promise<void> {
+        const result = await this.platform.showMessageBox({
+            type: 'warning',
+            message: 'hagis 웹 패널의 방문 기록을 모두 지울까요? (가져온 즐겨찾기·기록은 그대로입니다)',
+            buttons: ['지우기', '취소'],
+            defaultId: 1,
+            cancelId: 1,
+        })
+        if (result.response === 0) {
+            this.browserData.clearOwn()
+        }
+    }
 
     percent (z: number): number {
         return zoomPercent(z)
@@ -379,6 +559,14 @@ export class HagisSettingsTabComponent {
 
     async untrust (cert: HagisTrustedCertificate): Promise<void> {
         await this.web.untrust(cert)
+    }
+
+    permissionLabel (key: string): string {
+        return HAGIS_PERMISSION_LABELS[key] ?? key
+    }
+
+    async forgetPermission (entry: HagisSitePermission): Promise<void> {
+        await this.web.forgetPermission(entry)
     }
 
     async clearWebData (): Promise<void> {

@@ -274,6 +274,12 @@ export class HagisUpdateService {
                 }
             }
             fs.mkdirSync(path.join(target, 'dist'), { recursive: true })
+            // 문서 뷰어 파일(HWP·Word·Excel 등을 여는 페이지) — 이전 버전의 조각이 남지 않게 통째로 바꾼다
+            const viewerSource = path.join(root, 'dist', 'viewer')
+            if (fs.existsSync(path.join(viewerSource, 'viewer.html'))) {
+                fs.rmSync(path.join(target, 'dist', 'viewer'), { recursive: true, force: true })
+                fs.cpSync(viewerSource, path.join(target, 'dist', 'viewer'), { recursive: true })
+            }
             fs.copyFileSync(path.join(root, 'dist', 'index.js'), path.join(target, 'dist', 'index.js'))
             try {
                 fs.rmSync(path.join(target, 'dist', 'index.js.map'), { force: true })

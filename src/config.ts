@@ -2,6 +2,16 @@ import { Injectable } from '@angular/core'
 import { ConfigProvider } from 'tabby-core'
 import { HagisDockItem } from './models'
 
+/** 사용자가 "허용/차단"을 기억해 둔 사이트 권한 (마이크·카메라·위치·알림 등) */
+export interface HagisSitePermission {
+    /** https://example.com */
+    origin: string
+    /** media-audio | media-video | geolocation | notifications | clipboard-read | midi */
+    permission: string
+    allow: boolean
+    addedAt: string
+}
+
 export interface HagisTrustedCertificate {
     host: string
     fingerprint: string
@@ -80,6 +90,8 @@ export class HagisConfigProvider extends ConfigProvider {
                 httpsFirst: true,
                 /** 사용자가 직접 신뢰한 자체 서명 인증서 (호스트 + SHA-256 지문) */
                 trustedCertificates: [] as HagisTrustedCertificate[],
+                /** 마이크·카메라·위치·알림 등 사이트 권한 — "허용/차단"을 기억한 것 (묻지 않고 그대로 적용) */
+                sitePermissions: [] as HagisSitePermission[],
                 /**
                  * "새 탭으로 열기" 링크(target=_blank 등)를 어디에 열지
                  * 'pane' = 옆에 새 패널(이름표가 하나 더 생긴다) | 'same' = 이 패널에서
@@ -93,6 +105,37 @@ export class HagisConfigProvider extends ConfigProvider {
                  * 'pane'   = 링크처럼 새 패널로 (창 핸들이 없어 그런 사이트는 동작하지 않는다)
                  */
                 scriptOpen: 'relay' as 'window' | 'relay' | 'pane',
+                /** 웹 화면에서 브라우저 단축키 사용 (Ctrl+F 찾기 · Ctrl+P 인쇄 · F5 새로고침 · Alt+←/→ · Ctrl+±/0 확대 · F12) */
+                shortcuts: true,
+                /** 주소창에 주소가 아닌 글을 입력하면 이 검색 엔진으로 검색 ('off' = 항상 주소로 처리) */
+                searchEngine: 'google' as 'google' | 'naver' | 'bing' | 'duckduckgo' | 'off',
+            },
+            /** 웹 패널 파일 다운로드 */
+            download: {
+                /** true 면 받을 때마다 저장 위치를 묻는다 (기본: 다운로드 폴더에 바로 저장) */
+                askWhere: false,
+                /** 저장 폴더 (비우면 Windows 다운로드 폴더) */
+                folder: '',
+            },
+            /** 브라우저 연동 — 주소창 자동완성과 Chrome·Edge 에서 가져온 즐겨찾기·방문 기록 */
+            browser: {
+                suggest: {
+                    /** 주소창에 입력하면 아래에 후보 목록을 띄운다 */
+                    enabled: true,
+                    /** 한 번에 보여 줄 후보 수 (3~12) */
+                    max: 8,
+                    bookmarks: true,
+                    history: true,
+                },
+                /** hagis 웹 패널에서 연 주소를 방문 기록에 남겨 자동완성에 쓴다 (로그인·토큰이 든 주소는 남기지 않는다) */
+                recordHistory: true,
+                /** 가져오기 할 항목 */
+                importBookmarks: true,
+                importHistory: true,
+                /** 방문 기록은 최근 이 개수까지만 가져온다 */
+                importHistoryLimit: 5000,
+                /** 이미 가져온 브라우저는 hagis 를 켤 때 다시 읽어 최신으로 맞춘다 (브라우저가 켜져 있어 파일이 잠겨 있으면 건너뜀) */
+                autoSync: true,
             },
         },
     }
